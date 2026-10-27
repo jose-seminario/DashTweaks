@@ -14,6 +14,7 @@ public class EcoQosTweak : ITweak
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetProcessInformation(
         IntPtr hProcess,
         int processInformationClass,
@@ -22,7 +23,7 @@ public class EcoQosTweak : ITweak
     );
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+    private static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -133,8 +134,8 @@ public class EcoQosTweak : ITweak
                     var state = new PROCESS_POWER_THROTTLING_STATE
                     {
                         Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
-                        ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
-                        StateMask = 0 // Desactivar limitación de velocidad
+                        ControlMask = 0, // Devuelve el control al sistema (estado por defecto)
+                        StateMask = 0
                     };
 
                     SetProcessInformation(handle, ProcessPowerThrottling, ref state, (uint)Marshal.SizeOf(state));

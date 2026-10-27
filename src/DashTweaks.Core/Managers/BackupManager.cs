@@ -59,7 +59,12 @@ public class BackupManager
             };
 
             string metadataPath = Path.Combine(backupFolder, "backup_info.json");
-            File.WriteAllText(metadataPath, JsonSerializer.Serialize(backupInfo, new JsonSerializerOptions { WriteIndented = true }));
+            try
+            {
+                File.WriteAllText(metadataPath, JsonSerializer.Serialize(backupInfo, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (IOException) { /* archivo bloqueado: el backup .reg sigue siendo válido */ }
+            catch (UnauthorizedAccessException) { }
 
             result.Success = true;
             result.Message = result.RestorePointCreated
@@ -138,18 +143,17 @@ public class BackupManager
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process == null)
+            var run = ProcessRunner.Run(startInfo, 30000); // Límite de 30 segundos
+            string output = run.StdOut;
+            string error = run.StdErr;
+
+            if (run.TimedOut)
             {
-                message = "No se pudo iniciar el proceso de PowerShell.";
+                message = "Tiempo de espera agotado al crear el punto de restauración.";
                 return false;
             }
 
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit(30000); // Límite de 30 segundos
-
-            if (process.ExitCode == 0)
+            if (run.ExitCode == 0)
             {
                 message = "Punto de restauración del sistema creado con éxito.";
                 return true;
@@ -157,7 +161,7 @@ public class BackupManager
 
             message = !string.IsNullOrWhiteSpace(error)
                 ? error.Trim()
-                : (!string.IsNullOrWhiteSpace(output) ? output.Trim() : $"Código de salida: {process.ExitCode}");
+                : (!string.IsNullOrWhiteSpace(output) ? output.Trim() : $"Código de salida: {run.ExitCode}");
             return false;
         }
         catch (Exception ex)
@@ -181,11 +185,9 @@ public class BackupManager
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process != null)
+            var run = ProcessRunner.Run(startInfo, 5000);
             {
-                string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit(5000);
+                string output = run.StdOut;
 
                 string filePath = Path.Combine(targetFolder, "power_plan.txt");
                 File.WriteAllText(filePath, output.Trim(), Encoding.UTF8);
@@ -200,7 +202,8 @@ public class BackupManager
         }
         catch (Exception ex)
         {
-            File.WriteAllText(Path.Combine(targetFolder, "power_plan_error.txt"), ex.ToString(), Encoding.UTF8);
+            try { File.WriteAllText(Path.Combine(targetFolder, "power_plan_error.txt"), ex.ToString(), Encoding.UTF8); }
+            catch { /* archivo bloqueado (antivirus/OneDrive): se ignora */ }
         }
     }
 

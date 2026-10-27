@@ -83,7 +83,7 @@ public class NetworkDiagnosticManager
             logger?.Report("[DIAGNÓSTICO] Iniciando prueba de estabilidad y latencia base (20 muestras a 1.1.1.1)...");
 
             // Salvaguarda 1: Detección y Plan B si ICMP (Ping) está bloqueado por el firewall/ISP
-            bool useTcpFallback = await CheckIfIcmpBlockedAsync();
+            bool useTcpFallback = await CheckIfIcmpBlockedAsync().ConfigureAwait(false);
             result.UsedTcpFallback = useTcpFallback;
 
             if (useTcpFallback)
@@ -98,8 +98,8 @@ public class NetworkDiagnosticManager
             for (int i = 0; i < 20; i++)
             {
                 double? pingMs = useTcpFallback
-                    ? await MeasureTcpLatencyAsync()
-                    : await MeasureIcmpLatencyAsync();
+                    ? await MeasureTcpLatencyAsync().ConfigureAwait(false)
+                    : await MeasureIcmpLatencyAsync().ConfigureAwait(false);
 
                 if (pingMs.HasValue)
                 {
@@ -110,7 +110,7 @@ public class NetworkDiagnosticManager
                     failedAttempts++;
                 }
 
-                await Task.Delay(40); // Pequeña pausa para no saturar colas
+                await Task.Delay(40).ConfigureAwait(false); // Pequeña pausa para no saturar colas
             }
 
             // Si falló el 100% de las peticiones
@@ -129,7 +129,7 @@ public class NetworkDiagnosticManager
 
             // 2. Ejecutar prueba de Bufferbloat (latencia bajo carga)
             logger?.Report("[DIAGNÓSTICO] Iniciando prueba de Bufferbloat (descarga activa de prueba)...");
-            double loadedLatency = await RunBufferbloatTestInternalAsync(useTcpFallback, logger);
+            double loadedLatency = await RunBufferbloatTestInternalAsync(useTcpFallback, logger).ConfigureAwait(false);
             result.LoadedLatencyMs = loadedLatency;
             result.BufferbloatMs = Math.Max(0, loadedLatency - result.BaseLatencyMs);
 
@@ -164,7 +164,7 @@ public class NetworkDiagnosticManager
         {
             try
             {
-                var reply = await ping.SendPingAsync(TargetHost, 800);
+                var reply = await ping.SendPingAsync(TargetHost, 800).ConfigureAwait(false);
                 if (reply.Status != IPStatus.Success)
                 {
                     failed++;
@@ -182,7 +182,7 @@ public class NetworkDiagnosticManager
             try
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-                var resp = await client.GetAsync(FallbackUrl);
+                var resp = await client.GetAsync(FallbackUrl).ConfigureAwait(false);
                 return resp.IsSuccessStatusCode;
             }
             catch
@@ -199,7 +199,7 @@ public class NetworkDiagnosticManager
         try
         {
             using var ping = new Ping();
-            var reply = await ping.SendPingAsync(TargetHost, 1000);
+            var reply = await ping.SendPingAsync(TargetHost, 1000).ConfigureAwait(false);
             if (reply.Status == IPStatus.Success)
             {
                 return reply.RoundtripTime;
@@ -219,7 +219,7 @@ public class NetworkDiagnosticManager
         {
             using var client = new TcpClient();
             var connectTask = client.ConnectAsync(TargetHost, 80);
-            var completed = await Task.WhenAny(connectTask, Task.Delay(1000));
+            var completed = await Task.WhenAny(connectTask, Task.Delay(1000)).ConfigureAwait(false);
 
             if (completed == connectTask && client.Connected)
             {
@@ -245,11 +245,11 @@ public class NetworkDiagnosticManager
             try
             {
                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-                using var response = await httpClient.GetAsync(BufferbloatTestUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-                using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+                using var response = await httpClient.GetAsync(BufferbloatTestUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+                using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
                 byte[] buffer = new byte[65536];
 
-                while (!cts.Token.IsCancellationRequested && await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token) > 0)
+                while (!cts.Token.IsCancellationRequested && await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false) > 0)
                 {
                     // Consumir datos para saturar el ancho de banda temporalmente
                 }
@@ -258,7 +258,7 @@ public class NetworkDiagnosticManager
         }, cts.Token);
 
         // Esperar brevemente a que la descarga gane tracción
-        await Task.Delay(400);
+        await Task.Delay(400).ConfigureAwait(false);
 
         List<double> loadedLatencies = new();
 
@@ -267,22 +267,22 @@ public class NetworkDiagnosticManager
             for (int i = 0; i < 10; i++)
             {
                 double? pingMs = useTcpFallback
-                    ? await MeasureTcpLatencyAsync()
-                    : await MeasureIcmpLatencyAsync();
+                    ? await MeasureTcpLatencyAsync().ConfigureAwait(false)
+                    : await MeasureIcmpLatencyAsync().ConfigureAwait(false);
 
                 if (pingMs.HasValue)
                 {
                     loadedLatencies.Add(pingMs.Value);
                 }
 
-                await Task.Delay(60);
+                await Task.Delay(60).ConfigureAwait(false);
             }
         }
         finally
         {
             // SALVAGUARDA 2: Cancelar y liberar la descarga inmediatamente para no consumir ancho de banda de fondo
             cts.Cancel();
-            try { await Task.WhenAny(downloadTask, Task.Delay(500)); } catch { }
+            try { await Task.WhenAny(downloadTask, Task.Delay(500)).ConfigureAwait(false); } catch { }
             logger?.Report("[DIAGNÓSTICO] Flujo de prueba de Bufferbloat detenido y liberado.");
         }
 

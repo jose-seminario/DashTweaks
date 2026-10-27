@@ -8,14 +8,14 @@ public class ProcessSuspensionTweak : ITweak
 {
     // P/Invoke a ntdll.dll para suspender y reanudar procesos
     [DllImport("ntdll.dll", SetLastError = true)]
-    private static extern uint NtSuspendProcess(IntPtr processHandle);
+    private static extern int NtSuspendProcess(IntPtr processHandle);
 
     [DllImport("ntdll.dll", SetLastError = true)]
-    private static extern uint NtResumeProcess(IntPtr processHandle);
+    private static extern int NtResumeProcess(IntPtr processHandle);
 
     // P/Invoke a kernel32.dll para apertura y cierre seguro de handles
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
+    private static extern IntPtr OpenProcess(uint processAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int processId);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -80,7 +80,7 @@ public class ProcessSuspensionTweak : ITweak
                             handle = OpenProcess(ProcessSuspendResumeAccess, false, proc.Id);
                             if (handle != IntPtr.Zero)
                             {
-                                uint status = NtSuspendProcess(handle);
+                                int status = NtSuspendProcess(handle);
                                 if (status == 0) // STATUS_SUCCESS = 0
                                 {
                                     _suspendedProcessIds.Add(proc.Id);
@@ -135,7 +135,7 @@ public class ProcessSuspensionTweak : ITweak
                 handle = OpenProcess(ProcessSuspendResumeAccess, false, pid);
                 if (handle != IntPtr.Zero)
                 {
-                    uint status = NtResumeProcess(handle);
+                    int status = NtResumeProcess(handle);
                     if (status == 0)
                     {
                         anyResumed = true;

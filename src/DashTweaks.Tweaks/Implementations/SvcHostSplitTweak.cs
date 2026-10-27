@@ -10,6 +10,7 @@ public class SvcHostSplitTweak : ITweak
     private object? _originalValue;
     private RegistryValueKind? _originalValueKind;
     private bool _hadValue;
+    private bool _applied;
 
     public string Id => "system-svchost-split-threshold";
     public string Name => "Separación de Procesos SvcHost (Memoria)";
@@ -20,6 +21,8 @@ public class SvcHostSplitTweak : ITweak
 
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.CreateSubKey(ControlPath, true);
@@ -31,6 +34,7 @@ public class SvcHostSplitTweak : ITweak
 
             // 0x04000000 = 67108864 (64 MB en KB)
             key.SetValue(ValueName, 0x04000000, RegistryValueKind.DWord);
+            _applied = true;
             return true;
         }
         catch
@@ -41,6 +45,8 @@ public class SvcHostSplitTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(ControlPath, true);
@@ -55,6 +61,7 @@ public class SvcHostSplitTweak : ITweak
                 key.DeleteValue(ValueName, false);
             }
 
+            _applied = false;
             return true;
         }
         catch

@@ -18,7 +18,7 @@ public class UpdateCheckResult
 public class UpdateManager
 {
     private const string GitHubApiUrl = "https://api.github.com/repos/jose-seminario/DashTweaks/releases/latest";
-    private const string CurrentAppVersion = "2.0.0"; // Versión 2.0 definitiva de DashTweaks
+    private const string CurrentAppVersion = "2.3.0"; // Versión 2.3 definitiva de DashTweaks
 
     public string CurrentVersion => CurrentAppVersion;
 
@@ -41,7 +41,7 @@ public class UpdateManager
             client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DashTweaks-App", "2.0"));
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
 
-            var response = await client.GetAsync(GitHubApiUrl);
+            var response = await client.GetAsync(GitHubApiUrl).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 result.Success = false;
@@ -49,7 +49,7 @@ public class UpdateManager
                 return result;
             }
 
-            string json = await response.Content.ReadAsStringAsync();
+            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 

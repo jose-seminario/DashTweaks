@@ -96,7 +96,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="DashTweaks" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF"/>
                     <Border Background="#1F3D5C" BorderBrush="#2C5B88" BorderThickness="1" CornerRadius="4" Margin="12,0,0,0" Padding="6,2">
-                        <TextBlock Text="v2.0 • Ultimate Suite" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
+                        <TextBlock Text="v2.3 • Ultimate Gaming Suite" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
                 <TextBlock Text="Optimizador de rendimiento seguro para Windows 10/11 • Cero cajas negras • Backup First" 

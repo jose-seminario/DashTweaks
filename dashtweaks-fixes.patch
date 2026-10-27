@@ -1,0 +1,638 @@
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+index 8534597..3d3e9ab 100644
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -25,7 +25,7 @@ jobs:
+       run: dotnet build --no-restore -c Release
+       
+     - name: Publish
+-      run: dotnet publish src/DashTweaks.UI/DashTweaks.UI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
++      run: dotnet publish src/DashTweaks.UI/DashTweaks.UI.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
+       
+     - name: Upload Artifact
+       uses: actions/upload-artifact@v4
+diff --git a/src/DashTweaks.Core/Managers/BackupManager.cs b/src/DashTweaks.Core/Managers/BackupManager.cs
+index 98ce833..7b1efcf 100644
+--- a/src/DashTweaks.Core/Managers/BackupManager.cs
++++ b/src/DashTweaks.Core/Managers/BackupManager.cs
+@@ -59,7 +59,12 @@ public class BackupManager
+             };
+ 
+             string metadataPath = Path.Combine(backupFolder, "backup_info.json");
+-            File.WriteAllText(metadataPath, JsonSerializer.Serialize(backupInfo, new JsonSerializerOptions { WriteIndented = true }));
++            try
++            {
++                File.WriteAllText(metadataPath, JsonSerializer.Serialize(backupInfo, new JsonSerializerOptions { WriteIndented = true }));
++            }
++            catch (IOException) { /* archivo bloqueado: el backup .reg sigue siendo válido */ }
++            catch (UnauthorizedAccessException) { }
+ 
+             result.Success = true;
+             result.Message = result.RestorePointCreated
+@@ -138,18 +143,17 @@ public class BackupManager
+                 RedirectStandardError = true
+             };
+ 
+-            using var process = Process.Start(startInfo);
+-            if (process == null)
++            var run = ProcessRunner.Run(startInfo, 30000); // Límite de 30 segundos
++            string output = run.StdOut;
++            string error = run.StdErr;
++
++            if (run.TimedOut)
+             {
+-                message = "No se pudo iniciar el proceso de PowerShell.";
++                message = "Tiempo de espera agotado al crear el punto de restauración.";
+                 return false;
+             }
+ 
+-            string output = process.StandardOutput.ReadToEnd();
+-            string error = process.StandardError.ReadToEnd();
+-            process.WaitForExit(30000); // Límite de 30 segundos
+-
+-            if (process.ExitCode == 0)
++            if (run.ExitCode == 0)
+             {
+                 message = "Punto de restauración del sistema creado con éxito.";
+                 return true;
+@@ -157,7 +161,7 @@ public class BackupManager
+ 
+             message = !string.IsNullOrWhiteSpace(error)
+                 ? error.Trim()
+-                : (!string.IsNullOrWhiteSpace(output) ? output.Trim() : $"Código de salida: {process.ExitCode}");
++                : (!string.IsNullOrWhiteSpace(output) ? output.Trim() : $"Código de salida: {run.ExitCode}");
+             return false;
+         }
+         catch (Exception ex)
+@@ -181,11 +185,9 @@ public class BackupManager
+                 RedirectStandardError = true
+             };
+ 
+-            using var process = Process.Start(startInfo);
+-            if (process != null)
++            var run = ProcessRunner.Run(startInfo, 5000);
+             {
+-                string output = process.StandardOutput.ReadToEnd();
+-                process.WaitForExit(5000);
++                string output = run.StdOut;
+ 
+                 string filePath = Path.Combine(targetFolder, "power_plan.txt");
+                 File.WriteAllText(filePath, output.Trim(), Encoding.UTF8);
+@@ -200,7 +202,8 @@ public class BackupManager
+         }
+         catch (Exception ex)
+         {
+-            File.WriteAllText(Path.Combine(targetFolder, "power_plan_error.txt"), ex.ToString(), Encoding.UTF8);
++            try { File.WriteAllText(Path.Combine(targetFolder, "power_plan_error.txt"), ex.ToString(), Encoding.UTF8); }
++            catch { /* archivo bloqueado (antivirus/OneDrive): se ignora */ }
+         }
+     }
+ 
+diff --git a/src/DashTweaks.Core/Managers/BloatwareManager.cs b/src/DashTweaks.Core/Managers/BloatwareManager.cs
+index 2849d3c..a610c95 100644
+--- a/src/DashTweaks.Core/Managers/BloatwareManager.cs
++++ b/src/DashTweaks.Core/Managers/BloatwareManager.cs
+@@ -113,11 +113,9 @@ public class BloatwareManager
+                 RedirectStandardError = true
+             };
+ 
+-            using var process = Process.Start(startInfo);
+-            if (process != null)
++            var run = ProcessRunner.Run(startInfo, 10000);
+             {
+-                string jsonOutput = process.StandardOutput.ReadToEnd();
+-                process.WaitForExit(10000);
++                string jsonOutput = run.StdOut;
+ 
+                 var installedPackages = ParseInstalledPackages(jsonOutput);
+ 
+@@ -173,6 +171,13 @@ public class BloatwareManager
+             return false;
+         }
+ 
++        // Validación estricta: evita inyección de comandos en PowerShell
++        if (!System.Text.RegularExpressions.Regex.IsMatch(app.PackageFullName, @"^[A-Za-z0-9._~\-]+$"))
++        {
++            message = $"[ERROR] PackageFullName inválido para {app.DisplayName}.";
++            return false;
++        }
++
+         try
+         {
+             var startInfo = new ProcessStartInfo
+@@ -185,17 +190,10 @@ public class BloatwareManager
+                 RedirectStandardError = true
+             };
+ 
+-            using var process = Process.Start(startInfo);
+-            if (process == null)
+-            {
+-                message = $"[ERROR] No se pudo iniciar el proceso para desinstalar {app.DisplayName}.";
+-                return false;
+-            }
+-
+-            string errorOutput = process.StandardError.ReadToEnd();
+-            process.WaitForExit(15000);
++            var run = ProcessRunner.Run(startInfo, 15000);
++            string errorOutput = run.TimedOut ? "tiempo de espera agotado" : run.StdErr;
+ 
+-            if (process.ExitCode == 0)
++            if (!run.TimedOut && run.ExitCode == 0)
+             {
+                 app.IsInstalled = false;
+                 app.PackageFullName = string.Empty;
+diff --git a/src/DashTweaks.Core/Managers/GameDetector.cs b/src/DashTweaks.Core/Managers/GameDetector.cs
+index 013e14c..2574ed1 100644
+--- a/src/DashTweaks.Core/Managers/GameDetector.cs
++++ b/src/DashTweaks.Core/Managers/GameDetector.cs
+@@ -60,6 +60,9 @@ public class GameDetector : IDisposable
+ 
+     private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+     {
++        var started = new List<string>();
++        var stopped = new List<string>();
++
+         lock (_lock)
+         {
+             try
+@@ -103,16 +106,16 @@ public class GameDetector : IDisposable
+                     if (!_activeGames.Contains(game))
+                     {
+                         _activeGames.Add(game);
+-                        GameStarted?.Invoke(game);
++                        started.Add(game);
+                     }
+                 }
+ 
+                 // 2. Detectar juegos que se acaban de cerrar
+                 var stoppedGames = _activeGames.Where(g => !currentRunningGames.Contains(g)).ToList();
+-                foreach (var stopped in stoppedGames)
++                foreach (var stoppedGame in stoppedGames)
+                 {
+-                    _activeGames.Remove(stopped);
+-                    GameStopped?.Invoke(stopped);
++                    _activeGames.Remove(stoppedGame);
++                    stopped.Add(stoppedGame);
+                 }
+             }
+             catch
+@@ -120,6 +123,16 @@ public class GameDetector : IDisposable
+                 // Manejo de excepción silencioso en timer en segundo plano
+             }
+         }
++
++        // Los eventos se disparan FUERA del lock para evitar deadlocks con los suscriptores
++        foreach (var g in started)
++        {
++            try { GameStarted?.Invoke(g); } catch { }
++        }
++        foreach (var g in stopped)
++        {
++            try { GameStopped?.Invoke(g); } catch { }
++        }
+     }
+ 
+     public void Dispose()
+diff --git a/src/DashTweaks.Core/Managers/NetworkDiagnosticManager.cs b/src/DashTweaks.Core/Managers/NetworkDiagnosticManager.cs
+index d45a65e..41b28dd 100644
+--- a/src/DashTweaks.Core/Managers/NetworkDiagnosticManager.cs
++++ b/src/DashTweaks.Core/Managers/NetworkDiagnosticManager.cs
+@@ -83,7 +83,7 @@ public class NetworkDiagnosticManager
+             logger?.Report("[DIAGNÓSTICO] Iniciando prueba de estabilidad y latencia base (20 muestras a 1.1.1.1)...");
+ 
+             // Salvaguarda 1: Detección y Plan B si ICMP (Ping) está bloqueado por el firewall/ISP
+-            bool useTcpFallback = await CheckIfIcmpBlockedAsync();
++            bool useTcpFallback = await CheckIfIcmpBlockedAsync().ConfigureAwait(false);
+             result.UsedTcpFallback = useTcpFallback;
+ 
+             if (useTcpFallback)
+@@ -98,8 +98,8 @@ public class NetworkDiagnosticManager
+             for (int i = 0; i < 20; i++)
+             {
+                 double? pingMs = useTcpFallback
+-                    ? await MeasureTcpLatencyAsync()
+-                    : await MeasureIcmpLatencyAsync();
++                    ? await MeasureTcpLatencyAsync().ConfigureAwait(false)
++                    : await MeasureIcmpLatencyAsync().ConfigureAwait(false);
+ 
+                 if (pingMs.HasValue)
+                 {
+@@ -110,7 +110,7 @@ public class NetworkDiagnosticManager
+                     failedAttempts++;
+                 }
+ 
+-                await Task.Delay(40); // Pequeña pausa para no saturar colas
++                await Task.Delay(40).ConfigureAwait(false); // Pequeña pausa para no saturar colas
+             }
+ 
+             // Si falló el 100% de las peticiones
+@@ -129,7 +129,7 @@ public class NetworkDiagnosticManager
+ 
+             // 2. Ejecutar prueba de Bufferbloat (latencia bajo carga)
+             logger?.Report("[DIAGNÓSTICO] Iniciando prueba de Bufferbloat (descarga activa de prueba)...");
+-            double loadedLatency = await RunBufferbloatTestInternalAsync(useTcpFallback, logger);
++            double loadedLatency = await RunBufferbloatTestInternalAsync(useTcpFallback, logger).ConfigureAwait(false);
+             result.LoadedLatencyMs = loadedLatency;
+             result.BufferbloatMs = Math.Max(0, loadedLatency - result.BaseLatencyMs);
+ 
+@@ -164,7 +164,7 @@ public class NetworkDiagnosticManager
+         {
+             try
+             {
+-                var reply = await ping.SendPingAsync(TargetHost, 800);
++                var reply = await ping.SendPingAsync(TargetHost, 800).ConfigureAwait(false);
+                 if (reply.Status != IPStatus.Success)
+                 {
+                     failed++;
+@@ -182,7 +182,7 @@ public class NetworkDiagnosticManager
+             try
+             {
+                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+-                var resp = await client.GetAsync(FallbackUrl);
++                var resp = await client.GetAsync(FallbackUrl).ConfigureAwait(false);
+                 return resp.IsSuccessStatusCode;
+             }
+             catch
+@@ -199,7 +199,7 @@ public class NetworkDiagnosticManager
+         try
+         {
+             using var ping = new Ping();
+-            var reply = await ping.SendPingAsync(TargetHost, 1000);
++            var reply = await ping.SendPingAsync(TargetHost, 1000).ConfigureAwait(false);
+             if (reply.Status == IPStatus.Success)
+             {
+                 return reply.RoundtripTime;
+@@ -219,7 +219,7 @@ public class NetworkDiagnosticManager
+         {
+             using var client = new TcpClient();
+             var connectTask = client.ConnectAsync(TargetHost, 80);
+-            var completed = await Task.WhenAny(connectTask, Task.Delay(1000));
++            var completed = await Task.WhenAny(connectTask, Task.Delay(1000)).ConfigureAwait(false);
+ 
+             if (completed == connectTask && client.Connected)
+             {
+@@ -245,11 +245,11 @@ public class NetworkDiagnosticManager
+             try
+             {
+                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+-                using var response = await httpClient.GetAsync(BufferbloatTestUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+-                using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
++                using var response = await httpClient.GetAsync(BufferbloatTestUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
++                using var stream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+                 byte[] buffer = new byte[65536];
+ 
+-                while (!cts.Token.IsCancellationRequested && await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token) > 0)
++                while (!cts.Token.IsCancellationRequested && await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token).ConfigureAwait(false) > 0)
+                 {
+                     // Consumir datos para saturar el ancho de banda temporalmente
+                 }
+@@ -258,7 +258,7 @@ public class NetworkDiagnosticManager
+         }, cts.Token);
+ 
+         // Esperar brevemente a que la descarga gane tracción
+-        await Task.Delay(400);
++        await Task.Delay(400).ConfigureAwait(false);
+ 
+         List<double> loadedLatencies = new();
+ 
+@@ -267,22 +267,22 @@ public class NetworkDiagnosticManager
+             for (int i = 0; i < 10; i++)
+             {
+                 double? pingMs = useTcpFallback
+-                    ? await MeasureTcpLatencyAsync()
+-                    : await MeasureIcmpLatencyAsync();
++                    ? await MeasureTcpLatencyAsync().ConfigureAwait(false)
++                    : await MeasureIcmpLatencyAsync().ConfigureAwait(false);
+ 
+                 if (pingMs.HasValue)
+                 {
+                     loadedLatencies.Add(pingMs.Value);
+                 }
+ 
+-                await Task.Delay(60);
++                await Task.Delay(60).ConfigureAwait(false);
+             }
+         }
+         finally
+         {
+             // SALVAGUARDA 2: Cancelar y liberar la descarga inmediatamente para no consumir ancho de banda de fondo
+             cts.Cancel();
+-            try { await Task.WhenAny(downloadTask, Task.Delay(500)); } catch { }
++            try { await Task.WhenAny(downloadTask, Task.Delay(500)).ConfigureAwait(false); } catch { }
+             logger?.Report("[DIAGNÓSTICO] Flujo de prueba de Bufferbloat detenido y liberado.");
+         }
+ 
+diff --git a/src/DashTweaks.Core/Managers/ProcessRunner.cs b/src/DashTweaks.Core/Managers/ProcessRunner.cs
+new file mode 100644
+index 0000000..4c09e50
+--- /dev/null
++++ b/src/DashTweaks.Core/Managers/ProcessRunner.cs
+@@ -0,0 +1,38 @@
++using System.Diagnostics;
++
++namespace DashTweaks.Core.Managers;
++
++public sealed record ProcessRunResult(int ExitCode, string StdOut, string StdErr, bool TimedOut);
++
++/// <summary>
++/// Ejecuta procesos ocultos leyendo stdout/stderr en paralelo (evita deadlocks de pipe)
++/// y aplicando un timeout real: si se agota, el proceso se termina.
++/// </summary>
++public static class ProcessRunner
++{
++    public static ProcessRunResult Run(ProcessStartInfo psi, int timeoutMs)
++    {
++        psi.CreateNoWindow = true;
++        psi.UseShellExecute = false;
++        psi.RedirectStandardOutput = true;
++        psi.RedirectStandardError = true;
++
++        using var process = Process.Start(psi)
++            ?? throw new InvalidOperationException($"No se pudo iniciar {psi.FileName}.");
++
++        var stdoutTask = process.StandardOutput.ReadToEndAsync();
++        var stderrTask = process.StandardError.ReadToEndAsync();
++
++        if (!process.WaitForExit(timeoutMs))
++        {
++            try { process.Kill(entireProcessTree: true); } catch { }
++            return new ProcessRunResult(-1, string.Empty, string.Empty, TimedOut: true);
++        }
++
++        Task.WaitAll(new Task[] { stdoutTask, stderrTask }, 3000);
++        string stdout = stdoutTask.IsCompletedSuccessfully ? stdoutTask.GetAwaiter().GetResult() : string.Empty;
++        string stderr = stderrTask.IsCompletedSuccessfully ? stderrTask.GetAwaiter().GetResult() : string.Empty;
++
++        return new ProcessRunResult(process.ExitCode, stdout, stderr, TimedOut: false);
++    }
++}
+diff --git a/src/DashTweaks.Core/Managers/UpdateManager.cs b/src/DashTweaks.Core/Managers/UpdateManager.cs
+index 7130e81..3e50349 100644
+--- a/src/DashTweaks.Core/Managers/UpdateManager.cs
++++ b/src/DashTweaks.Core/Managers/UpdateManager.cs
+@@ -41,7 +41,7 @@ public class UpdateManager
+             client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DashTweaks-App", "2.0"));
+             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+ 
+-            var response = await client.GetAsync(GitHubApiUrl);
++            var response = await client.GetAsync(GitHubApiUrl).ConfigureAwait(false);
+             if (!response.IsSuccessStatusCode)
+             {
+                 result.Success = false;
+@@ -49,7 +49,7 @@ public class UpdateManager
+                 return result;
+             }
+ 
+-            string json = await response.Content.ReadAsStringAsync();
++            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+             using var doc = JsonDocument.Parse(json);
+             var root = doc.RootElement;
+ 
+diff --git a/src/DashTweaks.Tweaks/Implementations/EcoQosTweak.cs b/src/DashTweaks.Tweaks/Implementations/EcoQosTweak.cs
+index cced2fe..fd62c68 100644
+--- a/src/DashTweaks.Tweaks/Implementations/EcoQosTweak.cs
++++ b/src/DashTweaks.Tweaks/Implementations/EcoQosTweak.cs
+@@ -14,6 +14,7 @@ public class EcoQosTweak : ITweak
+     }
+ 
+     [DllImport("kernel32.dll", SetLastError = true)]
++    [return: MarshalAs(UnmanagedType.Bool)]
+     private static extern bool SetProcessInformation(
+         IntPtr hProcess,
+         int processInformationClass,
+@@ -22,7 +23,7 @@ public class EcoQosTweak : ITweak
+     );
+ 
+     [DllImport("kernel32.dll", SetLastError = true)]
+-    private static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
++    private static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
+ 
+     [DllImport("kernel32.dll", SetLastError = true)]
+     [return: MarshalAs(UnmanagedType.Bool)]
+@@ -133,8 +134,8 @@ public class EcoQosTweak : ITweak
+                     var state = new PROCESS_POWER_THROTTLING_STATE
+                     {
+                         Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+-                        ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
+-                        StateMask = 0 // Desactivar limitación de velocidad
++                        ControlMask = 0, // Devuelve el control al sistema (estado por defecto)
++                        StateMask = 0
+                     };
+ 
+                     SetProcessInformation(handle, ProcessPowerThrottling, ref state, (uint)Marshal.SizeOf(state));
+diff --git a/src/DashTweaks.Tweaks/Implementations/GameDvrTweak.cs b/src/DashTweaks.Tweaks/Implementations/GameDvrTweak.cs
+index 49a84a2..a24fe9c 100644
+--- a/src/DashTweaks.Tweaks/Implementations/GameDvrTweak.cs
++++ b/src/DashTweaks.Tweaks/Implementations/GameDvrTweak.cs
+@@ -4,6 +4,19 @@ namespace DashTweaks.Tweaks.Implementations;
+ 
+ public class GameDvrTweak : ITweak
+ {
++    private const string HkcuPath = @"System\GameConfigStore";
++    private const string HkcuValue = "GameDVR_Enabled";
++    private const string PolicyPath = @"SOFTWARE\Policies\Microsoft\Windows\GameDVR";
++    private const string PolicyValue = "AllowGameDVR";
++
++    // Estado original capturado una sola vez (idempotencia)
++    private bool _applied;
++    private object? _origHkcu;
++    private RegistryValueKind _origHkcuKind = RegistryValueKind.DWord;
++    private object? _origPolicy;
++    private RegistryValueKind _origPolicyKind = RegistryValueKind.DWord;
++    private bool _policyKeyExisted;
++
+     public string Id => "gaming-disable-gamedvr";
+     public string Name => "Desactivar GameDVR y Captura en Segundo Plano";
+     public string Description => "Desactiva la grabación en segundo plano de GameDVR para liberar memoria, GPU y reducir latencia de entrada.";
+@@ -13,50 +26,92 @@ public class GameDvrTweak : ITweak
+ 
+     public bool Apply()
+     {
+-        return SetGameDvrState(enabled: false);
+-    }
+-
+-    public bool Revert()
+-    {
+-        return SetGameDvrState(enabled: true);
+-    }
++        if (_applied) return true;
+ 
+-    private static bool SetGameDvrState(bool enabled)
+-    {
+-        int value = enabled ? 1 : 0;
+         bool hkcuSuccess = false;
+         bool hklmSuccess = false;
+ 
+         try
+         {
+-            // HKCU\System\GameConfigStore -> GameDVR_Enabled
+-            using var key = Registry.CurrentUser.CreateSubKey(@"System\GameConfigStore", true);
++            using var key = Registry.CurrentUser.CreateSubKey(HkcuPath, true);
+             if (key != null)
+             {
+-                key.SetValue("GameDVR_Enabled", value, RegistryValueKind.DWord);
++                _origHkcu = key.GetValue(HkcuValue, null);
++                if (_origHkcu != null) _origHkcuKind = key.GetValueKind(HkcuValue);
++                key.SetValue(HkcuValue, 0, RegistryValueKind.DWord);
+                 hkcuSuccess = true;
+             }
+         }
+-        catch
++        catch { hkcuSuccess = false; }
++
++        try
+         {
+-            hkcuSuccess = false;
++            using (var existing = Registry.LocalMachine.OpenSubKey(PolicyPath, false))
++            {
++                _policyKeyExisted = existing != null;
++            }
++
++            using var key = Registry.LocalMachine.CreateSubKey(PolicyPath, true);
++            if (key != null)
++            {
++                _origPolicy = key.GetValue(PolicyValue, null);
++                if (_origPolicy != null) _origPolicyKind = key.GetValueKind(PolicyValue);
++                key.SetValue(PolicyValue, 0, RegistryValueKind.DWord);
++                hklmSuccess = true;
++            }
+         }
++        catch { hklmSuccess = false; }
++
++        _applied = hkcuSuccess || hklmSuccess;
++        return _applied;
++    }
++
++    public bool Revert()
++    {
++        if (!_applied) return true;
++
++        bool ok = true;
+ 
+         try
+         {
+-            // HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR -> AllowGameDVR
+-            using var key = Registry.LocalMachine.CreateSubKey(@"SOFTWARE\Policies\Microsoft\Windows\GameDVR", true);
++            using var key = Registry.CurrentUser.OpenSubKey(HkcuPath, true);
+             if (key != null)
+             {
+-                key.SetValue("AllowGameDVR", value, RegistryValueKind.DWord);
+-                hklmSuccess = true;
++                if (_origHkcu != null) key.SetValue(HkcuValue, _origHkcu, _origHkcuKind);
++                else key.DeleteValue(HkcuValue, false);
+             }
+         }
+-        catch
++        catch { ok = false; }
++
++        try
+         {
+-            hklmSuccess = false;
++            if (_origPolicy != null)
++            {
++                using var key = Registry.LocalMachine.OpenSubKey(PolicyPath, true);
++                key?.SetValue(PolicyValue, _origPolicy, _origPolicyKind);
++            }
++            else
++            {
++                using (var key = Registry.LocalMachine.OpenSubKey(PolicyPath, true))
++                {
++                    key?.DeleteValue(PolicyValue, false);
++                }
++                if (!_policyKeyExisted)
++                {
++                    // La clave no existía antes de DashTweaks: se elimina solo si quedó vacía
++                    using var parent = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\Windows", true);
++                    using var child = parent?.OpenSubKey("GameDVR", false);
++                    if (child != null && child.ValueCount == 0 && child.SubKeyCount == 0)
++                    {
++                        child.Dispose();
++                        parent?.DeleteSubKey("GameDVR", false);
++                    }
++                }
++            }
+         }
++        catch { ok = false; }
+ 
+-        return hkcuSuccess || hklmSuccess;
++        if (ok) _applied = false;
++        return ok;
+     }
+ }
+diff --git a/src/DashTweaks.Tweaks/Implementations/MouseAccelerationTweak.cs b/src/DashTweaks.Tweaks/Implementations/MouseAccelerationTweak.cs
+index 72e276b..1b9c900 100644
+--- a/src/DashTweaks.Tweaks/Implementations/MouseAccelerationTweak.cs
++++ b/src/DashTweaks.Tweaks/Implementations/MouseAccelerationTweak.cs
+@@ -10,6 +10,7 @@ public class MouseAccelerationTweak : ITweak
+     private object? _originalThreshold1;
+     private object? _originalThreshold2;
+     private bool _hadValues;
++    private bool _applied;
+ 
+     public string Id => "peripherals-disable-mouse-acceleration";
+     public string Name => "Desactivar Aceleración del Ratón (Precisión 1:1)";
+@@ -20,6 +21,9 @@ public class MouseAccelerationTweak : ITweak
+ 
+     public bool Apply()
+     {
++        // Idempotencia: no sobrescribir el backup original con valores ya modificados
++        if (_applied) return true;
++
+         try
+         {
+             using var key = Registry.CurrentUser.CreateSubKey(MousePath, true);
+@@ -34,6 +38,7 @@ public class MouseAccelerationTweak : ITweak
+             key.SetValue("MouseThreshold1", "0", RegistryValueKind.String);
+             key.SetValue("MouseThreshold2", "0", RegistryValueKind.String);
+ 
++            _applied = true;
+             return true;
+         }
+         catch
+@@ -63,6 +68,7 @@ public class MouseAccelerationTweak : ITweak
+                 key.SetValue("MouseThreshold2", "10", RegistryValueKind.String);
+             }
+ 
++            _applied = false;
+             return true;
+         }
+         catch
+diff --git a/src/DashTweaks.Tweaks/Implementations/ProcessSuspensionTweak.cs b/src/DashTweaks.Tweaks/Implementations/ProcessSuspensionTweak.cs
+index ba26b97..c0ff8a2 100644
+--- a/src/DashTweaks.Tweaks/Implementations/ProcessSuspensionTweak.cs
++++ b/src/DashTweaks.Tweaks/Implementations/ProcessSuspensionTweak.cs
+@@ -15,7 +15,7 @@ public class ProcessSuspensionTweak : ITweak
+ 
+     // P/Invoke a kernel32.dll para apertura y cierre seguro de handles
+     [DllImport("kernel32.dll", SetLastError = true)]
+-    private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
++    private static extern IntPtr OpenProcess(uint processAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int processId);
+ 
+     [DllImport("kernel32.dll", SetLastError = true)]
+     [return: MarshalAs(UnmanagedType.Bool)]
+diff --git a/src/DashTweaks.Tweaks/Implementations/TimerResolutionTweak.cs b/src/DashTweaks.Tweaks/Implementations/TimerResolutionTweak.cs
+index 780252a..a9cafcf 100644
+--- a/src/DashTweaks.Tweaks/Implementations/TimerResolutionTweak.cs
++++ b/src/DashTweaks.Tweaks/Implementations/TimerResolutionTweak.cs
+@@ -5,7 +5,7 @@ namespace DashTweaks.Tweaks.Implementations;
+ public class TimerResolutionTweak : ITweak
+ {
+     [DllImport("ntdll.dll", SetLastError = true)]
+-    private static extern int NtSetTimerResolution(uint desiredResolution, bool setResolution, out uint currentResolution);
++    private static extern int NtSetTimerResolution(uint desiredResolution, [MarshalAs(UnmanagedType.U1)] bool setResolution, out uint currentResolution);
+ 
+     [DllImport("ntdll.dll", SetLastError = true)]
+     private static extern int NtQueryTimerResolution(out uint maximumResolution, out uint minimumResolution, out uint currentResolution);
+diff --git a/src/DashTweaks.UI/App.xaml.cs b/src/DashTweaks.UI/App.xaml.cs
+index bf8b5b4..5ff61eb 100644
+--- a/src/DashTweaks.UI/App.xaml.cs
++++ b/src/DashTweaks.UI/App.xaml.cs
+@@ -13,7 +13,7 @@ namespace DashTweaks.UI;
+ public partial class App : Application
+ {
+     [DllImport("ntdll.dll", SetLastError = true)]
+-    private static extern int NtSetTimerResolution(uint desiredResolution, bool setResolution, out uint currentResolution);
++    private static extern int NtSetTimerResolution(uint desiredResolution, [MarshalAs(UnmanagedType.U1)] bool setResolution, out uint currentResolution);
+ 
+     private TaskbarIcon? _taskbarIcon;
+     private readonly SettingsManager _settingsManager = new();

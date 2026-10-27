@@ -10,6 +10,7 @@ public class MouseAccelerationTweak : ITweak
     private object? _originalThreshold1;
     private object? _originalThreshold2;
     private bool _hadValues;
+    private bool _applied;
 
     public string Id => "peripherals-disable-mouse-acceleration";
     public string Name => "Desactivar Aceleración del Ratón (Precisión 1:1)";
@@ -20,6 +21,9 @@ public class MouseAccelerationTweak : ITweak
 
     public bool Apply()
     {
+        // Idempotencia: no sobrescribir el backup original con valores ya modificados
+        if (_applied) return true;
+
         try
         {
             using var key = Registry.CurrentUser.CreateSubKey(MousePath, true);
@@ -34,6 +38,7 @@ public class MouseAccelerationTweak : ITweak
             key.SetValue("MouseThreshold1", "0", RegistryValueKind.String);
             key.SetValue("MouseThreshold2", "0", RegistryValueKind.String);
 
+            _applied = true;
             return true;
         }
         catch
@@ -44,6 +49,8 @@ public class MouseAccelerationTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(MousePath, true);
@@ -63,6 +70,7 @@ public class MouseAccelerationTweak : ITweak
                 key.SetValue("MouseThreshold2", "10", RegistryValueKind.String);
             }
 
+            _applied = false;
             return true;
         }
         catch

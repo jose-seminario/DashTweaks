@@ -113,11 +113,9 @@ public class BloatwareManager
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process != null)
+            var run = ProcessRunner.Run(startInfo, 10000);
             {
-                string jsonOutput = process.StandardOutput.ReadToEnd();
-                process.WaitForExit(10000);
+                string jsonOutput = run.StdOut;
 
                 var installedPackages = ParseInstalledPackages(jsonOutput);
 
@@ -173,6 +171,13 @@ public class BloatwareManager
             return false;
         }
 
+        // Validación estricta: evita inyección de comandos en PowerShell
+        if (!System.Text.RegularExpressions.Regex.IsMatch(app.PackageFullName, @"^[A-Za-z0-9._~\-]+$"))
+        {
+            message = $"[ERROR] PackageFullName inválido para {app.DisplayName}.";
+            return false;
+        }
+
         try
         {
             var startInfo = new ProcessStartInfo
@@ -185,17 +190,10 @@ public class BloatwareManager
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                message = $"[ERROR] No se pudo iniciar el proceso para desinstalar {app.DisplayName}.";
-                return false;
-            }
+            var run = ProcessRunner.Run(startInfo, 15000);
+            string errorOutput = run.TimedOut ? "tiempo de espera agotado" : run.StdErr;
 
-            string errorOutput = process.StandardError.ReadToEnd();
-            process.WaitForExit(15000);
-
-            if (process.ExitCode == 0)
+            if (!run.TimedOut && run.ExitCode == 0)
             {
                 app.IsInstalled = false;
                 app.PackageFullName = string.Empty;

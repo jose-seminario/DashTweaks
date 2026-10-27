@@ -60,6 +60,9 @@ public class GameDetector : IDisposable
 
     private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
     {
+        var started = new List<string>();
+        var stopped = new List<string>();
+
         lock (_lock)
         {
             try
@@ -103,22 +106,32 @@ public class GameDetector : IDisposable
                     if (!_activeGames.Contains(game))
                     {
                         _activeGames.Add(game);
-                        GameStarted?.Invoke(game);
+                        started.Add(game);
                     }
                 }
 
                 // 2. Detectar juegos que se acaban de cerrar
                 var stoppedGames = _activeGames.Where(g => !currentRunningGames.Contains(g)).ToList();
-                foreach (var stopped in stoppedGames)
+                foreach (var stoppedGame in stoppedGames)
                 {
-                    _activeGames.Remove(stopped);
-                    GameStopped?.Invoke(stopped);
+                    _activeGames.Remove(stoppedGame);
+                    stopped.Add(stoppedGame);
                 }
             }
             catch
             {
                 // Manejo de excepción silencioso en timer en segundo plano
             }
+        }
+
+        // Los eventos se disparan FUERA del lock para evitar deadlocks con los suscriptores
+        foreach (var g in started)
+        {
+            try { GameStarted?.Invoke(g); } catch { }
+        }
+        foreach (var g in stopped)
+        {
+            try { GameStopped?.Invoke(g); } catch { }
         }
     }
 

@@ -6,7 +6,7 @@ public class MemoryPurgeTweak : ITweak
 {
     // P/Invoke a kernel32.dll para consultar estado de memoria global
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private class MEMORYSTATUSEX
+    private struct MEMORYSTATUSEX
     {
         public uint dwLength;
         public uint dwMemoryLoad;
@@ -18,15 +18,18 @@ public class MemoryPurgeTweak : ITweak
         public ulong ullAvailVirtual;
         public ulong ullAvailExtendedVirtual;
 
-        public MEMORYSTATUSEX()
+        public static MEMORYSTATUSEX Create()
         {
-            dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+            return new MEMORYSTATUSEX
+            {
+                dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>()
+            };
         }
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
 
     // P/Invoke a ntdll.dll para invocar el comando de purga de memoria en espera
     [DllImport("ntdll.dll", SetLastError = true)]
@@ -55,8 +58,8 @@ public class MemoryPurgeTweak : ITweak
         try
         {
             // 1. Validar uso actual de RAM con GlobalMemoryStatusEx
-            var memStatus = new MEMORYSTATUSEX();
-            if (!GlobalMemoryStatusEx(memStatus))
+            var memStatus = MEMORYSTATUSEX.Create();
+            if (!GlobalMemoryStatusEx(ref memStatus))
             {
                 StatusMessage = "No se pudo consultar el estado actual de la memoria RAM.";
                 return false;

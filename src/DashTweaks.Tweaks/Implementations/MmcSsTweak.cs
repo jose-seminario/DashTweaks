@@ -18,6 +18,7 @@ public class MmcSsTweak : ITweak
     private object? _originalSchedulingCategory;
     private RegistryValueKind? _originalSchedulingCategoryKind;
     private bool _hadSchedulingCategory;
+    private bool _applied;
 
     public string Id => "system-mmcss-gaming-priority";
     public string Name => "Prioridad Multimedia (MMCSS) para Juegos";
@@ -28,6 +29,8 @@ public class MmcSsTweak : ITweak
 
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.CreateSubKey(SubKeyPath, true);
@@ -51,6 +54,7 @@ public class MmcSsTweak : ITweak
             key.SetValue("Priority", 6, RegistryValueKind.DWord);
             key.SetValue("Scheduling Category", "High", RegistryValueKind.String);
 
+            _applied = true;
             return true;
         }
         catch
@@ -61,6 +65,8 @@ public class MmcSsTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(SubKeyPath, true);
@@ -96,6 +102,7 @@ public class MmcSsTweak : ITweak
                 key.DeleteValue("Scheduling Category", false);
             }
 
+            _applied = false;
             return true;
         }
         catch

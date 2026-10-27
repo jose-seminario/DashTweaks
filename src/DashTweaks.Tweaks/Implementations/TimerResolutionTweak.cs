@@ -5,7 +5,7 @@ namespace DashTweaks.Tweaks.Implementations;
 public class TimerResolutionTweak : ITweak
 {
     [DllImport("ntdll.dll", SetLastError = true)]
-    private static extern int NtSetTimerResolution(uint desiredResolution, bool setResolution, out uint currentResolution);
+    private static extern int NtSetTimerResolution(uint desiredResolution, [MarshalAs(UnmanagedType.U1)] bool setResolution, out uint currentResolution);
 
     [DllImport("ntdll.dll", SetLastError = true)]
     private static extern int NtQueryTimerResolution(out uint maximumResolution, out uint minimumResolution, out uint currentResolution);

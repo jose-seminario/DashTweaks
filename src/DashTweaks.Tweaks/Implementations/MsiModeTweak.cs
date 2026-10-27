@@ -300,6 +300,9 @@ public class MsiModeTweak : ITweak
     {
         try
         {
+            // Idempotencia: no sobrescribir el backup de fábrica si ya existe
+            if (File.Exists(BackupFilePath)) return;
+
             var dir = Path.GetDirectoryName(BackupFilePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {

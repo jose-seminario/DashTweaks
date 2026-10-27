@@ -13,7 +13,7 @@ namespace DashTweaks.UI;
 public partial class App : Application
 {
     [DllImport("ntdll.dll", SetLastError = true)]
-    private static extern int NtSetTimerResolution(uint desiredResolution, bool setResolution, out uint currentResolution);
+    private static extern int NtSetTimerResolution(uint desiredResolution, [MarshalAs(UnmanagedType.U1)] bool setResolution, out uint currentResolution);
 
     private TaskbarIcon? _taskbarIcon;
     private readonly SettingsManager _settingsManager = new();
