@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private readonly MmcSsTweak _mmcSsTweak = new();
     private readonly ProcessSuspensionTweak _processSuspensionTweak = new();
     private readonly TimerResolutionTweak _timerResolutionTweak = new();
+    private readonly NetworkLatencyTweak _networkLatencyTweak = new();
 
     private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
@@ -81,7 +82,9 @@ public partial class MainWindow : Window
 
         ChkAutoGameMode.IsChecked = _settings.AutoGameModeEnabled;
 
-        LogMessage("DashTweaks v1.7 (Startup Manager Edition) inicializado.");
+        UpdateNetworkDashboardStatus(_networkLatencyTweak.IsApplied);
+
+        LogMessage("DashTweaks v1.8 (Network Latency Optimizer Edition) inicializado.");
         LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
     }
 
@@ -618,6 +621,7 @@ public partial class MainWindow : Window
         Tweaks.Add(new TweakItemViewModel(new FseOptimizationTweak()));
         Tweaks.Add(new TweakItemViewModel(_timerResolutionTweak));
         Tweaks.Add(new TweakItemViewModel(new EcoQosTweak()));
+        Tweaks.Add(new TweakItemViewModel(_networkLatencyTweak));
     }
 
     private void InitializeServices()
@@ -736,8 +740,12 @@ public partial class MainWindow : Window
         {
             if (item.Risk == RiskLevel.Aggressive)
             {
+                string warningText = item.Tweak is NetworkLatencyTweak
+                    ? "ADVERTENCIA DE RENDIMIENTO Y RED:\n\nEste tweak desactiva la moderación de interrupciones (Interrupt Moderation) y los modos de ahorro de energía en tu tarjeta de red activa para procesar paquetes inmediatamente.\n\n• Puede aumentar el uso de CPU en procesadores de gama baja.\n• NO es compatible con conexiones Wi-Fi (solo Ethernet por cable).\n\n¿Deseas activar esta optimización agresiva?"
+                    : "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?";
+
                 var confirmAggressive = MessageBox.Show(
-                    "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?",
+                    warningText,
                     "DashTweaks - Advertencia de Riesgo Agresivo",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning
@@ -828,6 +836,27 @@ public partial class MainWindow : Window
                     LogMessage($"[AVISO] No se detectaron procesos de usuario en segundo plano para limitar.");
                 }
             }
+            else if (item.Tweak is NetworkLatencyTweak netTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Requiere reiniciar el PC o adaptador]" : "";
+                    LogMessage($"{netTweak.StatusMessage}{restartNotice}");
+                    UpdateNetworkDashboardStatus(true);
+                    MessageBox.Show(
+                        $"{netTweak.StatusMessage}\n\nSe recomienda reiniciar el adaptador de red o el equipo para que el controlador aplique los nuevos parámetros.",
+                        "DashTweaks - Red Optimizada",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
+                else
+                {
+                    LogMessage(netTweak.StatusMessage);
+                    MessageBox.Show(netTweak.StatusMessage, "DashTweaks - Red", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
             else
             {
                 if (success)
@@ -864,6 +893,10 @@ public partial class MainWindow : Window
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
                     );
+                }
+                else if (item.Tweak is NetworkLatencyTweak)
+                {
+                    UpdateNetworkDashboardStatus(false);
                 }
             }
             else
@@ -1132,6 +1165,7 @@ public partial class MainWindow : Window
                 RefreshRunningProcesses();
                 _ = RefreshBloatwareAsync();
                 _ = RefreshStartupItemsAsync();
+                UpdateNetworkDashboardStatus(false);
 
                 MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -1191,6 +1225,21 @@ public partial class MainWindow : Window
         TxtStatus.Text = isBusy ? "Operando..." : statusText;
         TxtBusyStatus.Text = statusText;
         BusyBanner.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void UpdateNetworkDashboardStatus(bool isOptimized)
+    {
+        if (TxtNetworkStatus == null) return;
+        if (isOptimized)
+        {
+            TxtNetworkStatus.Text = "Optimizado (Baja Latencia)";
+            TxtNetworkStatus.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6C, 0xCB, 0x76));
+        }
+        else
+        {
+            TxtNetworkStatus.Text = "Estándar (Default)";
+            TxtNetworkStatus.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA0, 0xA0, 0xAA));
+        }
     }
 
     private void LogMessage(string message)

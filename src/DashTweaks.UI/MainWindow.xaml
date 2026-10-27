@@ -199,8 +199,8 @@
         <!-- Main Navigation Tabs -->
         <TabControl Grid.Row="4" Background="Transparent" BorderThickness="0" Margin="0,0,0,12">
             
-            <!-- PESTAÑA 1: TWEAKS DEL SISTEMA (14 TWEAKS) -->
-            <TabItem Header="🚀 Optimizaciones (14)">
+            <!-- PESTAÑA 1: TWEAKS DEL SISTEMA (15 TWEAKS) -->
+            <TabItem Header="🚀 Optimizaciones (15)">
                 <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -210,7 +210,7 @@
                         </Grid.RowDefinitions>
 
                         <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="Catálogo de Rendimiento Gaming (14 Tweaks Activos)" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
+                            <TextBlock Text="Catálogo de Rendimiento Gaming (15 Tweaks Activos)" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
                             <TextBlock Text="* El primer cambio de la sesión genera un Checkpoint obligatorio." FontSize="11" Foreground="#8A8A93" FontStyle="Italic" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </DockPanel>
 
@@ -219,9 +219,11 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="18"/>
-                                    <ColumnDefinition Width="1.4*"/>
-                                    <ColumnDefinition Width="18"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="1.2*"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="14"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
@@ -243,8 +245,16 @@
                                     <ProgressBar x:Name="PbRamUsage" Height="8" Minimum="0" Maximum="100" Value="0" Background="#262730" Foreground="#107C10" BorderThickness="0"/>
                                 </StackPanel>
 
+                                <!-- Indicador Estado de Red (NIC Tuning) -->
+                                <Border Grid.Column="4" Background="#15161B" BorderBrush="#2C2E3A" BorderThickness="1" CornerRadius="6" Padding="10,6" VerticalAlignment="Center">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🌐 Latencia de Red" FontSize="11" Foreground="#A0A0AA" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtNetworkStatus" Text="Estándar (Default)" FontSize="11.5" Foreground="#A0A0AA" FontWeight="Bold" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Botón Perfil Recomendado -->
-                                <Button Grid.Column="4" 
+                                <Button Grid.Column="6" 
                                         x:Name="BtnApplyRecommendedProfile" 
                                         Content="⚡ APLICAR PERFIL RECOMENDADO" 
                                         Style="{StaticResource ActionButtonStyle}" 
