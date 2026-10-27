@@ -1,6 +1,10 @@
+using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using DashTweaks.Core.Managers;
 using DashTweaks.Core.Models;
+using DashTweaks.Tweaks.Implementations;
+using DashTweaks.UI.ViewModels;
 
 namespace DashTweaks.UI;
 
@@ -12,17 +16,129 @@ public partial class MainWindow : Window
     private readonly BackupManager _backupManager = new();
     private readonly RollbackManager _rollbackManager = new();
 
+    private bool _hasSessionCheckpoint = false;
+    private bool _isBusy = false;
+
+    public ObservableCollection<TweakItemViewModel> Tweaks { get; } = new();
+
     public MainWindow()
     {
         InitializeComponent();
-        LogMessage("DashTweaks inicializado.");
-        LogMessage("Listo para operaciones de seguridad.");
+        InitializeTweaks();
+        TweaksItemsControl.ItemsSource = Tweaks;
+
+        LogMessage("DashTweaks inicializado en modo de alta seguridad.");
+        LogMessage("Políticas: Backup First • Mitigaciones intactas • Cero cajas negras.");
+    }
+
+    private void InitializeTweaks()
+    {
+        Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
+        Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
+        Tweaks.Add(new TweakItemViewModel(new MmcSsTweak()));
+        Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
+    }
+
+    private async void TweakActionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        if (sender is not Button btn || btn.DataContext is not TweakItemViewModel item) return;
+
+        if (!item.IsApplied)
+        {
+            // FLUJO: APLICAR TWEAK
+            // Regla crítica: Si es la primera optimización de la sesión, exigir Checkpoint
+            if (!_hasSessionCheckpoint)
+            {
+                SetBusyState(true, "Creando punto de restauración... por favor espera");
+                LogMessage($"[SEGURIDAD] Primera optimización solicitada ('{item.Name}'). Generando Checkpoint obligatorio...");
+
+                BackupResult backupResult = await Task.Run(() => _backupManager.CreateCheckpoint());
+
+                if (!backupResult.Success)
+                {
+                    LogMessage($"[CANCELADO] Falló la creación del Checkpoint de seguridad: {backupResult.Message}");
+                    LogMessage("[SEGURIDAD] La optimización ha sido abortada para proteger la integridad del sistema.");
+                    MessageBox.Show(
+                        $"No se pudo crear el backup de seguridad obligatorio:\n\n{backupResult.Message}\n\nLa optimización ha sido cancelada.",
+                        "DashTweaks - Optimización Abortada",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                    SetBusyState(false, "Operación cancelada por fallo en backup");
+                    return;
+                }
+
+                _hasSessionCheckpoint = true;
+                LogMessage($"[CHECKPOINT OK] Respaldo guardado en: {backupResult.BackupPath}");
+                if (backupResult.RestorePointCreated)
+                {
+                    LogMessage("[CHECKPOINT OK] Punto de restauración del sistema Windows creado exitosamente.");
+                }
+                else
+                {
+                    LogMessage($"[AVISO] {backupResult.RestorePointMessage}");
+                }
+            }
+
+            // Aplicar el Tweak asíncronamente
+            SetBusyState(true, $"Aplicando tweak '{item.Name}'...");
+            LogMessage($"Aplicando tweak: {item.Name}...");
+
+            bool success = await Task.Run(() => item.Tweak.Apply());
+
+            if (success)
+            {
+                item.IsApplied = true;
+                string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Reinicia para aplicar]" : "";
+                LogMessage($"[ÉXITO] '{item.Name}' aplicado correctamente.{restartNotice}");
+            }
+            else
+            {
+                LogMessage($"[ERROR] Falló la aplicación de '{item.Name}'. Verifica permisos del registro.");
+                MessageBox.Show(
+                    $"No se pudo aplicar '{item.Name}'.",
+                    "DashTweaks - Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+        else
+        {
+            // FLUJO: REVERTIR TWEAK
+            SetBusyState(true, $"Revirtiendo tweak '{item.Name}'...");
+            LogMessage($"Revirtiendo tweak: {item.Name}...");
+
+            bool success = await Task.Run(() => item.Tweak.Revert());
+
+            if (success)
+            {
+                item.IsApplied = false;
+                string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer la configuración de red]" : "";
+                LogMessage($"[REVERTIDO] '{item.Name}' restaurado a sus valores previos.{restartNotice}");
+            }
+            else
+            {
+                LogMessage($"[ERROR] Falló la reversión de '{item.Name}'.");
+                MessageBox.Show(
+                    $"No se pudo revertir '{item.Name}'.",
+                    "DashTweaks - Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        SetBusyState(false, "Listo");
     }
 
     private async void BtnCreateBackup_Click(object sender, RoutedEventArgs e)
     {
-        SetBusyState(true, "Creando punto de control...");
-        LogMessage("--- Iniciando proceso de Backup ---");
+        if (_isBusy) return;
+
+        SetBusyState(true, "Creando punto de restauración... por favor espera");
+        LogMessage("--- Creando Checkpoint Manual ---");
 
         try
         {
@@ -30,27 +146,27 @@ public partial class MainWindow : Window
 
             if (result.Success)
             {
-                LogMessage($"[ÉXITO] Carpeta de backup: {result.BackupPath}");
+                _hasSessionCheckpoint = true;
+                LogMessage($"[ÉXITO] Backup creado en: {result.BackupPath}");
                 if (result.RestorePointCreated)
                 {
-                    LogMessage("[OK] Punto de restauración del sistema creado con éxito.");
+                    LogMessage("[OK] Punto de restauración del sistema creado exitosamente.");
                 }
                 else
                 {
-                    LogMessage($"[AVISO] No se pudo crear el punto de restauración: {result.RestorePointMessage}");
-                    LogMessage("       (Nota: Si la Protección del Sistema está desactivada en Windows, los backups de Registro y Energía siguen protegidos).");
+                    LogMessage($"[AVISO] {result.RestorePointMessage}");
                 }
 
                 MessageBox.Show(
                     result.Message,
-                    "DashTweaks - Backup",
+                    "DashTweaks - Backup Manual",
                     MessageBoxButton.OK,
                     result.RestorePointCreated ? MessageBoxImage.Information : MessageBoxImage.Warning
                 );
             }
             else
             {
-                LogMessage($"[ERROR] Falló la creación del backup: {result.Message}");
+                LogMessage($"[ERROR] {result.Message}");
                 MessageBox.Show(result.Message, "DashTweaks - Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -67,8 +183,10 @@ public partial class MainWindow : Window
 
     private async void BtnRestoreBackup_Click(object sender, RoutedEventArgs e)
     {
-        SetBusyState(true, "Consultando backups disponibles...");
-        LogMessage("--- Iniciando proceso de Restauración ---");
+        if (_isBusy) return;
+
+        SetBusyState(true, "Consultando puntos de restauración disponibles...");
+        LogMessage("--- Solicitud de Rollback Total ---");
 
         try
         {
@@ -76,21 +194,19 @@ public partial class MainWindow : Window
 
             if (!backups.Any())
             {
-                LogMessage("[AVISO] No se encontraron backups locales previos para restaurar.");
+                LogMessage("[AVISO] No se encontraron checkpoints previos en disco.");
                 MessageBox.Show(
-                    "No se encontró ningún backup previo en el sistema. Primero crea un checkpoint.",
-                    "DashTweaks - Restauración",
+                    "No se encontró ningún backup previo guardado en este equipo.",
+                    "DashTweaks - Rollback",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information
                 );
                 return;
             }
 
-            var latestBackup = backups.First();
-            LogMessage($"Restaurando el backup más reciente: {latestBackup.Id} ({latestBackup.CreatedAt:yyyy-MM-dd HH:mm:ss})");
-
+            var latest = backups.First();
             var confirm = MessageBox.Show(
-                $"¿Deseas restaurar la configuración desde el backup del {latestBackup.CreatedAt:yyyy-MM-dd HH:mm:ss}?\n\nUbicación: {latestBackup.FolderPath}",
+                $"¿Deseas restaurar la configuración completa desde el backup del {latest.CreatedAt:yyyy-MM-dd HH:mm:ss}?\n\nCarpeta: {latest.FolderPath}",
                 "Confirmación de Rollback",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question
@@ -102,21 +218,29 @@ public partial class MainWindow : Window
                 return;
             }
 
-            RollbackResult rollbackResult = await Task.Run(() => _rollbackManager.RestoreFromBackup(latestBackup.FolderPath));
+            SetBusyState(true, "Restaurando registro y esquemas de energía...");
+            RollbackResult result = await Task.Run(() => _rollbackManager.RestoreFromBackup(latest.FolderPath));
 
-            if (rollbackResult.Success)
+            if (result.Success)
             {
-                LogMessage($"[ÉXITO] {rollbackResult.Message}");
-                MessageBox.Show(rollbackResult.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
+                LogMessage($"[ÉXITO] {result.Message}");
+
+                // Marcar tweaks visualmente como no aplicados si se restauró todo
+                foreach (var tweakItem in Tweaks)
+                {
+                    tweakItem.IsApplied = false;
+                }
+
+                MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                LogMessage($"[ERROR] Falló la restauración: {rollbackResult.Message}");
-                foreach (var err in rollbackResult.Errors)
+                LogMessage($"[ERROR] Falló la restauración: {result.Message}");
+                foreach (var err in result.Errors)
                 {
                     LogMessage($"       * {err}");
                 }
-                MessageBox.Show(rollbackResult.Message, "DashTweaks - Error en Restauración", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(result.Message, "DashTweaks - Error en Restauración", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         catch (Exception ex)
@@ -132,9 +256,19 @@ public partial class MainWindow : Window
 
     private void SetBusyState(bool isBusy, string statusText)
     {
+        _isBusy = isBusy;
+
         BtnCreateBackup.IsEnabled = !isBusy;
         BtnRestoreBackup.IsEnabled = !isBusy;
-        TxtStatus.Text = statusText;
+
+        foreach (var tweak in Tweaks)
+        {
+            tweak.IsBusy = isBusy;
+        }
+
+        TxtStatus.Text = isBusy ? "Operando..." : statusText;
+        TxtBusyStatus.Text = statusText;
+        BusyBanner.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void LogMessage(string message)
