@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using DashTweaks.Core.Managers;
@@ -16,59 +17,56 @@ public partial class MainWindow : Window
     private readonly BackupManager _backupManager = new();
     private readonly RollbackManager _rollbackManager = new();
     private readonly ServiceManagerTweak _serviceManager = new();
+    private readonly SettingsManager _settingsManager = new();
 
+    private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
     private bool _isBusy = false;
 
     public ObservableCollection<TweakItemViewModel> Tweaks { get; } = new();
     public ObservableCollection<ServiceItemViewModel> Services { get; } = new();
+    public ObservableCollection<WhitelistProcessItemViewModel> AllProcesses { get; } = new();
+    public ObservableCollection<WhitelistProcessItemViewModel> FilteredProcesses { get; } = new();
 
     public MainWindow()
     {
         InitializeComponent();
+
+        _settings = _settingsManager.LoadSettings();
+
         InitializeTweaks();
         InitializeServices();
+        InitializeProcesses();
 
         TweaksItemsControl.ItemsSource = Tweaks;
         ServicesItemsControl.ItemsSource = Services;
+        ProcessesItemsControl.ItemsSource = FilteredProcesses;
 
-        LogMessage("DashTweaks v1.2 (Definitive Gaming Edition) inicializado.");
-        LogMessage("Estado: 9 Tweaks disponibles • Gestor de Servicios activo • Modo de Seguridad UAC.");
+        LogMessage("DashTweaks v1.2 (Definitive Edition) inicializado con soporte de Lista Blanca.");
+        LogMessage($"Configuración: {_settings.GameModeWhitelist.Count} exclusiones activas en config.json.");
     }
 
     private void InitializeTweaks()
     {
-        // 1. Esquema de Energía
         Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
-
-        // 2. Servicios de Juegos (GameDVR)
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
-
-        // 3. Prioridades Multimedia (MMCSS)
         Tweaks.Add(new TweakItemViewModel(new MmcSsTweak()));
-
-        // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
-
-        // 5. Suspensión de Procesos en Segundo Plano
         Tweaks.Add(new TweakItemViewModel(new ProcessSuspensionTweak()));
-
-        // 6. Purga de Memoria Standby
         Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
-
-        // 7. Optimización de Red Avanzada & LLMNR
         Tweaks.Add(new TweakItemViewModel(new NetworkAdvancedTweak()));
-
-        // 8. Latencia de Entrada HID (Buffer Ratón y Teclado)
         Tweaks.Add(new TweakItemViewModel(new HidTweak()));
-
-        // 9. Hardware-Accelerated GPU Scheduling (HAGS)
         Tweaks.Add(new TweakItemViewModel(new HagsTweak()));
     }
 
     private void InitializeServices()
     {
         RefreshServiceStates();
+    }
+
+    private void InitializeProcesses()
+    {
+        RefreshRunningProcesses();
     }
 
     private void RefreshServiceStates()
@@ -84,8 +82,88 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            LogMessage($"[AVISO] No se pudieron consultar todos los servicios: {ex.Message}");
+            LogMessage($"[AVISO] No se pudieron consultar los servicios: {ex.Message}");
         }
+    }
+
+    private void RefreshRunningProcesses()
+    {
+        try
+        {
+            AllProcesses.Clear();
+            var whitelistSet = new HashSet<string>(
+                _settings.GameModeWhitelist.Select(NormalizeName),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // Obtener procesos con ventana gráfica o aplicaciones conocidas de comunicación/juego
+            var processes = Process.GetProcesses()
+                .Where(p =>
+                {
+                    try
+                    {
+                        return p.MainWindowHandle != IntPtr.Zero || IsKnownApp(p.ProcessName);
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                })
+                .OrderBy(p => p.ProcessName);
+
+            foreach (var proc in processes)
+            {
+                try
+                {
+                    string norm = NormalizeName(proc.ProcessName);
+                    bool isWhitelisted = whitelistSet.Contains(norm);
+                    AllProcesses.Add(new WhitelistProcessItemViewModel(proc.ProcessName, proc.MainWindowTitle, proc.Id, isWhitelisted));
+                }
+                catch
+                {
+                    // Ignorar procesos cerrados durante la iteración
+                }
+            }
+
+            ApplyProcessFilter();
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[AVISO] Error al listar procesos activos: {ex.Message}");
+        }
+    }
+
+    private void ApplyProcessFilter()
+    {
+        string query = TxtSearchProcess?.Text?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        FilteredProcesses.Clear();
+        foreach (var item in AllProcesses)
+        {
+            if (string.IsNullOrEmpty(query) ||
+                item.ProcessName.ToLowerInvariant().Contains(query) ||
+                item.MainWindowTitle.ToLowerInvariant().Contains(query))
+            {
+                FilteredProcesses.Add(item);
+            }
+        }
+    }
+
+    private static bool IsKnownApp(string name)
+    {
+        string lower = name.ToLowerInvariant();
+        return lower is "discord" or "steam" or "spotify" or "chrome" or "msedge" or "obs64" or "ts3client_win64" or "telegram";
+    }
+
+    private static string NormalizeName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+        string clean = name.Trim();
+        if (clean.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            clean = clean.Substring(0, clean.Length - 4);
+        }
+        return clean.ToLowerInvariant();
     }
 
     #region Manejo de Tweaks Individuales
@@ -101,7 +179,7 @@ public partial class MainWindow : Window
             if (item.Tweak is ProcessSuspensionTweak)
             {
                 var confirm = MessageBox.Show(
-                    "La barra de tareas y el escritorio dejarán de responder temporalmente hasta que reviertas esta acción. Esto es normal y libera recursos para el juego.\n\n¿Deseas suspender los procesos en segundo plano ahora?",
+                    "La barra de tareas y el escritorio dejarán de responder temporalmente hasta que reviertas esta acción. Esto es normal y libera recursos para el juego.\n\n(Las aplicaciones en tu Lista Blanca NO serán suspendidas).\n\n¿Deseas suspender los procesos secundarios ahora?",
                     "DashTweaks - Confirmación de Suspensión de Procesos",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning
@@ -114,21 +192,44 @@ public partial class MainWindow : Window
                 }
             }
 
-            // REGLA CRÍTICA: Primer cambio de la sesión exige Checkpoint obligatorio
+            // REGLA CRÍTICA: Checkpoint obligatorio en la primera modificación
             if (!_hasSessionCheckpoint)
             {
                 bool checkpointOk = await EnsureSessionCheckpointAsync(item.Name);
                 if (!checkpointOk) return;
             }
 
-            // Aplicación asíncrona del Tweak
             SetBusyState(true, $"Aplicando '{item.Name}'...");
             LogMessage($"Aplicando tweak: {item.Name}...");
 
             bool success = await Task.Run(() => item.Tweak.Apply());
 
-            // Manejo según tipo de tweak
-            if (item.Tweak is MemoryPurgeTweak memTweak)
+            if (item.Tweak is ProcessSuspensionTweak procTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+
+                    // Reportar en consola las aplicaciones saltadas por Lista Blanca
+                    foreach (var skipped in procTweak.SkippedProcesses)
+                    {
+                        LogMessage($"[LISTA BLANCA] Saltando {skipped} (en Lista Blanca).");
+                    }
+
+                    LogMessage($"[ÉXITO] '{item.Name}' aplicado. ({procTweak.SuspendedCount} procesos suspendidos).");
+                    MessageBox.Show(
+                        $"Procesos secundarios suspendidos ({procTweak.SuspendedCount}).\nExclusiones respetadas: {procTweak.SkippedProcesses.Count}.\n\nPresiona 'REVERTIR' al finalizar la partida para restaurar el escritorio.",
+                        "DashTweaks - Game Mode",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
+                else
+                {
+                    LogMessage($"[AVISO] No se encontraron procesos activos para suspender ({item.Name}).");
+                }
+            }
+            else if (item.Tweak is MemoryPurgeTweak memTweak)
             {
                 if (success)
                 {
@@ -140,24 +241,6 @@ public partial class MainWindow : Window
                 {
                     LogMessage($"[AVISO] {memTweak.StatusMessage}");
                     MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Purga Omitida", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            else if (item.Tweak is ProcessSuspensionTweak procTweak)
-            {
-                if (success)
-                {
-                    item.IsApplied = true;
-                    LogMessage($"[ÉXITO] '{item.Name}' aplicado. ({procTweak.SuspendedCount} procesos suspendidos).");
-                    MessageBox.Show(
-                        "Procesos secundarios suspendidos exitosamente.\n\nPresiona 'REVERTIR' al finalizar la partida para restaurar el escritorio de Windows.",
-                        "DashTweaks - Procesos Suspendidos",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
-                }
-                else
-                {
-                    LogMessage($"[AVISO] No se encontraron procesos activos para suspender ({item.Name}).");
                 }
             }
             else
@@ -186,13 +269,13 @@ public partial class MainWindow : Window
             if (success)
             {
                 item.IsApplied = false;
-                string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer completamente la configuración]" : "";
+                string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer la configuración]" : "";
                 LogMessage($"[REVERTIDO] '{item.Name}' restaurado a sus valores previos.{restartNotice}");
 
                 if (item.Tweak is ProcessSuspensionTweak)
                 {
                     MessageBox.Show(
-                        "Todos los procesos han sido reanudados. El escritorio y la barra de tareas han vuelto a la normalidad.",
+                        "Todos los procesos suspendidos han sido reanudados. El escritorio y las aplicaciones han vuelto a la normalidad.",
                         "DashTweaks - Procesos Reanudados",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
@@ -224,7 +307,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // REGLA CRÍTICA: Checkpoint obligatorio si es la primera modificación de la sesión
         if (!_hasSessionCheckpoint)
         {
             bool checkpointOk = await EnsureSessionCheckpointAsync("Gestor de Servicios");
@@ -281,6 +363,50 @@ public partial class MainWindow : Window
     {
         RefreshServiceStates();
         LogMessage("[ACTUALIZADO] Estados en vivo de servicios de Windows actualizados.");
+    }
+
+    #endregion
+
+    #region Lista Blanca (Exclusiones Game Mode)
+
+    private void TxtSearchProcess_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        ApplyProcessFilter();
+    }
+
+    private void BtnRefreshProcesses_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshRunningProcesses();
+        LogMessage("[ACTUALIZADO] Lista de procesos activos actualizada.");
+    }
+
+    private void BtnSaveWhitelist_Click(object sender, RoutedEventArgs e)
+    {
+        // Extraer nombres únicos de procesos que tienen la casilla activada
+        var selectedNames = AllProcesses
+            .Where(p => p.IsWhitelisted)
+            .Select(p => p.ExeName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _settings.GameModeWhitelist = selectedNames;
+        bool ok = _settingsManager.SaveSettings(_settings);
+
+        if (ok)
+        {
+            LogMessage($"[CONFIG] Lista Blanca guardada con {selectedNames.Count} exclusiones en config.json.");
+            MessageBox.Show(
+                $"Lista Blanca guardada correctamente con {selectedNames.Count} exclusiones.\n\nEstos procesos no serán suspendidos cuando actives el Game Mode.",
+                "DashTweaks - Lista Blanca Guardada",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
+        }
+        else
+        {
+            LogMessage("[ERROR] No se pudo guardar la configuración de Lista Blanca.");
+            MessageBox.Show("Error al guardar la configuración.", "DashTweaks - Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     #endregion
@@ -414,13 +540,13 @@ public partial class MainWindow : Window
             {
                 LogMessage($"[ÉXITO] {result.Message}");
 
-                // Marcar tweaks visualmente como no aplicados si se restauró todo
                 foreach (var tweakItem in Tweaks)
                 {
                     tweakItem.IsApplied = false;
                 }
 
                 RefreshServiceStates();
+                RefreshRunningProcesses();
                 MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -453,6 +579,8 @@ public partial class MainWindow : Window
         BtnDisableServices.IsEnabled = !isBusy;
         BtnRestoreServices.IsEnabled = !isBusy;
         BtnRefreshServices.IsEnabled = !isBusy;
+        BtnRefreshProcesses.IsEnabled = !isBusy;
+        BtnSaveWhitelist.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {
