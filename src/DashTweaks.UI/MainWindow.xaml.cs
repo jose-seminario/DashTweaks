@@ -579,7 +579,8 @@ public partial class MainWindow : Window
             // Desactivar: Mover de Run a DashTweaks\Disabled o subcarpeta Disabled
             LogMessage($"[INICIO] Desactivando inicio automático para: {itemVm.Name} ({itemVm.LocationTypeText})...");
 
-            bool success = await Task.Run(() => _startupManager.DisableStartupItem(itemVm.Item, out string msg));
+            string msg = string.Empty;
+            bool success = await Task.Run(() => _startupManager.DisableStartupItem(itemVm.Item, out msg));
 
             if (success)
             {
@@ -598,7 +599,8 @@ public partial class MainWindow : Window
             // Reactivar: Devolver a Run o a la carpeta de Inicio
             LogMessage($"[INICIO] Reactivando inicio automático para: {itemVm.Name} ({itemVm.LocationTypeText})...");
 
-            bool success = await Task.Run(() => _startupManager.EnableStartupItem(itemVm.Item, out string msg));
+            string msg = string.Empty;
+            bool success = await Task.Run(() => _startupManager.EnableStartupItem(itemVm.Item, out msg));
 
             if (success)
             {
