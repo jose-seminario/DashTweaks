@@ -333,7 +333,128 @@
                 </Border>
             </TabItem>
 
-            <!-- PESTAÑA 2: GESTOR DE SERVICIOS -->
+            <!-- PESTAÑA 2: DIAGNÓSTICO DE RED PARA GAMING -->
+            <TabItem Header="🩺 Diagnóstico de Red">
+                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Header de Diagnóstico -->
+                            <DockPanel Margin="0,0,0,16">
+                                <StackPanel DockPanel.Dock="Left">
+                                    <TextBlock Text="Centro de Diagnóstico de Red para Gaming" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF"/>
+                                    <TextBlock Text="Analiza la estabilidad real de tu conexión midiendo Packet Loss, Jitter y Bufferbloat bajo descarga para erradicar el lag." 
+                                               FontSize="12" Foreground="#8F8F96" Margin="0,3,0,0"/>
+                                </StackPanel>
+
+                                <Button x:Name="BtnRunDiagnostics" 
+                                        Content="🔬 EJECUTAR DIAGNÓSTICO COMPLETO" 
+                                        Style="{StaticResource ActionButtonStyle}" 
+                                        Background="#0078D4" 
+                                        DockPanel.Dock="Right" 
+                                        HorizontalAlignment="Right" 
+                                        VerticalAlignment="Center"
+                                        Padding="16,10"
+                                        Click="BtnRunDiagnostics_Click"/>
+                            </DockPanel>
+
+                            <!-- Tarjetas de Semáforo de Métricas -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Tarjeta 1: Packet Loss -->
+                                <Border Grid.Column="0" x:Name="CardPacketLoss" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel>
+                                        <TextBlock Text="Pérdida de Paquetes" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtPacketLossVal" Text="-- %" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
+                                        <Border x:Name="BadgePacketLoss" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                            <TextBlock x:Name="TxtPacketLossStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Tarjeta 2: Jitter -->
+                                <Border Grid.Column="2" x:Name="CardJitter" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel>
+                                        <TextBlock Text="Jitter (Fluctuación)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtJitterVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
+                                        <Border x:Name="BadgeJitter" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                            <TextBlock x:Name="TxtJitterStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Tarjeta 3: Bufferbloat -->
+                                <Border Grid.Column="4" x:Name="CardBufferbloat" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel>
+                                        <TextBlock Text="Bufferbloat (+ms bajo carga)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtBufferbloatVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
+                                        <Border x:Name="BadgeBufferbloat" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                            <TextBlock x:Name="TxtBufferbloatStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Tarjeta 4: Latencia Base -->
+                                <Border Grid.Column="6" x:Name="CardLatency" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel>
+                                        <TextBlock Text="Latencia Base (Ping)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtLatencyVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#60CDFF" Margin="0,6,0,6"/>
+                                        <Border x:Name="BadgeLatency" Background="#1E2B3A" BorderBrush="#2B4666" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                            <TextBlock x:Name="TxtLatencyStatus" Text="Sin testear" FontSize="10.5" Foreground="#60CDFF" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Panel de Recomendaciones Inteligentes -->
+                            <Border Background="#16171C" BorderBrush="#2A2C38" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="💡" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Diagnóstico y Recomendaciones Personalizadas" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <Border Background="#1B1C22" BorderBrush="#262730" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,12">
+                                        <TextBlock x:Name="TxtRecommendations" 
+                                                   Text="Presiona 'EJECUTAR DIAGNÓSTICO COMPLETO' para analizar el estado de tu red y obtener recomendaciones dirigidas." 
+                                                   FontSize="12.5" Foreground="#C0C0C8" TextWrapping="Wrap" LineHeight="20"/>
+                                    </Border>
+
+                                    <!-- Acción Recomendada: Limpiar Ruta de Red -->
+                                    <Border Background="#1D2028" BorderBrush="#2C354A" BorderThickness="1" CornerRadius="6" Padding="12">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                                <TextBlock Text="🛠️ Acción Recomendada: Limpiar y Restablecer Ruta de Red" FontSize="13" FontWeight="Bold" Foreground="#60CDFF"/>
+                                                <TextBlock Text="Limpia la caché de resolución DNS de Windows y renueva las rutas de paquetes para resolver micro-cortes." 
+                                                           FontSize="11.5" Foreground="#8E9CB3" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <Button x:Name="BtnFlushDnsAndReset" 
+                                                    Content="LIMPIAR RUTA DE RED" 
+                                                    Style="{StaticResource ActionButtonStyle}" 
+                                                    Background="#107C10" 
+                                                    DockPanel.Dock="Right" 
+                                                    HorizontalAlignment="Right" 
+                                                    VerticalAlignment="Center"
+                                                    Click="BtnFlushDnsAndReset_Click"/>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+
+            <!-- PESTAÑA 3: GESTOR DE SERVICIOS -->
             <TabItem Header="⚙️ Servicios">
                 <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
                     <Grid>

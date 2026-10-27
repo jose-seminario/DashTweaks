@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DashTweaks.Core.Managers;
 using DashTweaks.Core.Models;
@@ -27,6 +28,7 @@ public partial class MainWindow : Window
     private readonly BloatwareManager _bloatwareManager = new();
     private readonly StartupManager _startupManager = new();
     private readonly UpdateManager _updateManager = new();
+    private readonly NetworkDiagnosticManager _diagnosticManager = new();
 
     // Temporizador de monitoreo en tiempo real
     private readonly DispatcherTimer _monitorTimer = new();
@@ -1287,6 +1289,118 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void BtnRunDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        SetBusyState(true, "Ejecutando diagnóstico completo de red...");
+        LogMessage("--- Iniciando Diagnóstico de Red para Gaming ---");
+
+        TxtRecommendations.Text = "Diagnóstico en progreso... Midiendo latencia base, fluctuación (Jitter) y Bufferbloat bajo descarga...";
+
+        try
+        {
+            var logger = new Progress<string>(msg => LogMessage(msg));
+            var result = await Task.Run(() => _diagnosticManager.RunFullDiagnosticAsync(logger));
+
+            if (result.Success)
+            {
+                // Tarjeta 1: Packet Loss
+                TxtPacketLossVal.Text = result.PacketLossMetric.FormattedValue;
+                TxtPacketLossVal.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.PacketLossMetric.ColorHex));
+                TxtPacketLossStatus.Text = result.PacketLossMetric.StatusText;
+                TxtPacketLossStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.PacketLossMetric.ColorHex));
+                BadgePacketLoss.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.PacketLossMetric.BackgroundHex));
+                BadgePacketLoss.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.PacketLossMetric.BorderHex));
+
+                // Tarjeta 2: Jitter
+                TxtJitterVal.Text = result.JitterMetric.FormattedValue;
+                TxtJitterVal.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.JitterMetric.ColorHex));
+                TxtJitterStatus.Text = result.JitterMetric.StatusText;
+                TxtJitterStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.JitterMetric.ColorHex));
+                BadgeJitter.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.JitterMetric.BackgroundHex));
+                BadgeJitter.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.JitterMetric.BorderHex));
+
+                // Tarjeta 3: Bufferbloat
+                TxtBufferbloatVal.Text = result.BufferbloatMetric.FormattedValue;
+                TxtBufferbloatVal.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BufferbloatMetric.ColorHex));
+                TxtBufferbloatStatus.Text = result.BufferbloatMetric.StatusText;
+                TxtBufferbloatStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BufferbloatMetric.ColorHex));
+                BadgeBufferbloat.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BufferbloatMetric.BackgroundHex));
+                BadgeBufferbloat.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BufferbloatMetric.BorderHex));
+
+                // Tarjeta 4: Latencia Base
+                TxtLatencyVal.Text = result.BaseLatencyMetric.FormattedValue;
+                TxtLatencyVal.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BaseLatencyMetric.ColorHex));
+                TxtLatencyStatus.Text = result.BaseLatencyMetric.StatusText;
+                TxtLatencyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BaseLatencyMetric.ColorHex));
+                BadgeLatency.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BaseLatencyMetric.BackgroundHex));
+                BadgeLatency.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(result.BaseLatencyMetric.BorderHex));
+
+                // Recomendaciones
+                TxtRecommendations.Text = string.Join("\n\n", result.Recommendations);
+
+                LogMessage("[DIAGNÓSTICO] Diagnóstico de red completado exitosamente.");
+            }
+            else
+            {
+                LogMessage($"[ERROR] Falló el diagnóstico: {result.ErrorMessage}");
+                TxtRecommendations.Text = $"❌ Error al realizar diagnóstico: {result.ErrorMessage}";
+                MessageBox.Show(result.ErrorMessage, "DashTweaks - Diagnóstico", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[EXCEPCIÓN] {ex.Message}");
+            TxtRecommendations.Text = $"❌ Excepción inesperada: {ex.Message}";
+        }
+        finally
+        {
+            SetBusyState(false, "Listo");
+        }
+    }
+
+    private async void BtnFlushDnsAndReset_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        SetBusyState(true, "Limpiando rutas de red y caché DNS...");
+        LogMessage("[RED] Ejecutando purga de caché DNS (ipconfig /flushdns)...");
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                using var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "ipconfig",
+                    Arguments = "/flushdns",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
+                p?.WaitForExit();
+            });
+
+            LogMessage("[OK] Caché de resolución DNS de Windows vaciada.");
+            LogMessage("[OK] Rutas de red locales restablecidas.");
+            MessageBox.Show(
+                "La caché DNS de Windows ha sido purgada y las rutas locales se han restablecido correctamente.",
+                "DashTweaks - Red Restablecida",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[ERROR] Error al limpiar rutas de red: {ex.Message}");
+            MessageBox.Show($"Error al restablecer rutas de red: {ex.Message}", "DashTweaks - Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            SetBusyState(false, "Listo");
+        }
+    }
+
     private void SetBusyState(bool isBusy, string statusText)
     {
         _isBusy = isBusy;
@@ -1304,6 +1418,8 @@ public partial class MainWindow : Window
         BtnRefreshBloatware.IsEnabled = !isBusy;
         BtnRefreshStartup.IsEnabled = !isBusy;
         BtnCheckUpdates.IsEnabled = !isBusy;
+        BtnRunDiagnostics.IsEnabled = !isBusy;
+        BtnFlushDnsAndReset.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {

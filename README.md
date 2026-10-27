@@ -27,6 +27,7 @@ A diferencia de optimizadores invasivos o suites de pago de código cerrado (caj
   15. *Optimizador de Latencia de Red (DPC / NIC Tuning)* (Interrupt Moderation, EEE y Green Ethernet desactivados con bloqueo estricto en Wi-Fi).
   16. *Modo MSI en GPU y Red (Message Signaled Interrupts)* (interrupciones basadas en mensajes PCI con script de rescate automático en el Escritorio).
 - 🚨 **Script de Rescate de Emergencia (`RESCATE_MSI.bat`):** Generado automáticamente en el Escritorio al activar el Modo MSI para restaurar el arranque normal en Modo Seguro ante cualquier imprevisto de controladores antiguos.
+- 🩺 **Centro de Diagnóstico de Red (Packet Loss, Jitter y Bufferbloat):** Medición en vivo de estabilidad competitiva con fallback TCP ante bloqueos ICMP, test de Bufferbloat bajo descarga activa (con liberación inmediata de ancho de banda) y panel de recomendaciones inteligentes.
 - 🧹 **Desinstalador Seguro de Bloatware UWP:** Escaneo y eliminación reversible de aplicaciones preinstaladas no esenciales de Windows con enlace directo de reinstalación vía Microsoft Store.
 - ⚡ **Gestor de Inicio Rápido (Startup Manager):** Aislamiento seguro (`Software\DashTweaks\Disabled`) de aplicaciones en arranque de Windows sin borrar datos y con advertencia en controladores críticos.
 - 🎮 **Auto-Game Mode en Bandeja:** Detección en segundo plano de juegos competitivos (CS2, Valorant, Fortnite, Apex, LoL, Dota 2, GTA V) con aplicación automática al jugar y reversión al salir.

@@ -35,7 +35,8 @@ DashTweaks/
     │   │   ├── SystemMonitor.cs    # Métricas de CPU y RAM en vivo
     │   │   ├── BloatwareManager.cs # Detección y desinstalación/restauración de apps UWP
     │   │   ├── StartupManager.cs   # Gestión de inicio de Windows en Run y carpetas
-    │   │   └── UpdateManager.cs    # Consultas a GitHub Releases API
+    │   │   ├── UpdateManager.cs    # Consultas a GitHub Releases API
+    │   │   └── NetworkDiagnosticManager.cs # Diagnóstico de Packet Loss, Jitter y Bufferbloat
     │   └── Models/
     │       └── BackupInfo.cs       # Modelos de metadatos de respaldo
     ├── DashTweaks.Tweaks/          # Catálogo desacoplado de optimizaciones
