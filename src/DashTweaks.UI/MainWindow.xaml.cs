@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private readonly SystemMonitor _systemMonitor = new();
     private readonly BloatwareManager _bloatwareManager = new();
     private readonly StartupManager _startupManager = new();
+    private readonly UpdateManager _updateManager = new();
 
     // Temporizador de monitoreo en tiempo real
     private readonly DispatcherTimer _monitorTimer = new();
@@ -36,6 +37,7 @@ public partial class MainWindow : Window
     private readonly ProcessSuspensionTweak _processSuspensionTweak = new();
     private readonly TimerResolutionTweak _timerResolutionTweak = new();
     private readonly NetworkLatencyTweak _networkLatencyTweak = new();
+    private readonly MsiModeTweak _msiModeTweak = new();
 
     private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
@@ -84,7 +86,7 @@ public partial class MainWindow : Window
 
         UpdateNetworkDashboardStatus(_networkLatencyTweak.IsApplied);
 
-        LogMessage("DashTweaks v1.8 (Network Latency Optimizer Edition) inicializado.");
+        LogMessage("DashTweaks v2.0 (Ultimate Edition) inicializado.");
         LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
     }
 
@@ -622,6 +624,7 @@ public partial class MainWindow : Window
         Tweaks.Add(new TweakItemViewModel(_timerResolutionTweak));
         Tweaks.Add(new TweakItemViewModel(new EcoQosTweak()));
         Tweaks.Add(new TweakItemViewModel(_networkLatencyTweak));
+        Tweaks.Add(new TweakItemViewModel(_msiModeTweak));
     }
 
     private void InitializeServices()
@@ -740,9 +743,11 @@ public partial class MainWindow : Window
         {
             if (item.Risk == RiskLevel.Aggressive)
             {
-                string warningText = item.Tweak is NetworkLatencyTweak
-                    ? "ADVERTENCIA DE RENDIMIENTO Y RED:\n\nEste tweak desactiva la moderación de interrupciones (Interrupt Moderation) y los modos de ahorro de energía en tu tarjeta de red activa para procesar paquetes inmediatamente.\n\n• Puede aumentar el uso de CPU en procesadores de gama baja.\n• NO es compatible con conexiones Wi-Fi (solo Ethernet por cable).\n\n¿Deseas activar esta optimización agresiva?"
-                    : "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?";
+                string warningText = item.Tweak is MsiModeTweak
+                    ? "ADVERTENCIA DE RIESGO AGRESIVO (Modo MSI):\n\nEsto cambiará la forma en que tu GPU y tarjeta de red se comunican con la CPU. Mejora la latencia y fluidez en el 90% de los casos, pero en hardware muy antiguo puede causar inestabilidad o pantallazos azules.\n\nLa app creará un punto de restauración antes y un archivo RESCATE_MSI.bat en tu Escritorio.\n\n¿Deseas activar el modo MSI?"
+                    : item.Tweak is NetworkLatencyTweak
+                        ? "ADVERTENCIA DE RENDIMIENTO Y RED:\n\nEste tweak desactiva la moderación de interrupciones (Interrupt Moderation) y los modos de ahorro de energía en tu tarjeta de red activa para procesar paquetes inmediatamente.\n\n• Puede aumentar el uso de CPU en procesadores de gama baja.\n• NO es compatible con conexiones Wi-Fi (solo Ethernet por cable).\n\n¿Deseas activar esta optimización agresiva?"
+                        : "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?";
 
                 var confirmAggressive = MessageBox.Show(
                     warningText,
@@ -857,6 +862,26 @@ public partial class MainWindow : Window
                     MessageBox.Show(netTweak.StatusMessage, "DashTweaks - Red", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+            else if (item.Tweak is MsiModeTweak msiTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Requiere reiniciar el PC]" : "";
+                    LogMessage($"{msiTweak.StatusMessage}{restartNotice}");
+                    MessageBox.Show(
+                        $"{msiTweak.StatusMessage}\n\n⚠️ SALVAGUARDA DE SEGURIDAD:\nSe ha creado un archivo 'RESCATE_MSI.bat' en tu Escritorio.\nSi tu PC no arranca después de reiniciar, entra en Modo Seguro de Windows y ejecuta ese archivo para restaurar la normalidad.\n\nPor favor reinicia tu equipo para aplicar los cambios.",
+                        "DashTweaks - Modo MSI Activado",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
+                else
+                {
+                    LogMessage(msiTweak.StatusMessage);
+                    MessageBox.Show(msiTweak.StatusMessage, "DashTweaks - Modo MSI", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
             else
             {
                 if (success)
@@ -897,6 +922,10 @@ public partial class MainWindow : Window
                 else if (item.Tweak is NetworkLatencyTweak)
                 {
                     UpdateNetworkDashboardStatus(false);
+                }
+                else if (item.Tweak is MsiModeTweak)
+                {
+                    LogMessage("[MSI MODE] Script de rescate eliminado del Escritorio tras la reversión.");
                 }
             }
             else
@@ -1190,6 +1219,74 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        SetBusyState(true, "Consultando actualizaciones en GitHub...");
+        LogMessage("[ACTUALIZADOR] Comprobando la versión más reciente en GitHub...");
+
+        try
+        {
+            var updateResult = await Task.Run(() => _updateManager.CheckForUpdatesAsync());
+
+            if (!updateResult.Success)
+            {
+                LogMessage($"[ACTUALIZADOR] {updateResult.ErrorMessage}");
+                MessageBox.Show(
+                    $"No se pudo comprobar actualizaciones:\n\n{updateResult.ErrorMessage}",
+                    "DashTweaks - Actualizador",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+                return;
+            }
+
+            if (updateResult.IsUpdateAvailable)
+            {
+                LogMessage($"[ACTUALIZADOR] ¡Nueva versión disponible: v{updateResult.LatestVersion}! (Actual: v{updateResult.CurrentVersion})");
+
+                var ask = MessageBox.Show(
+                    $"¡Nueva versión disponible: v{updateResult.LatestVersion}!\n(Tu versión actual es v{updateResult.CurrentVersion})\n\n¿Deseas descargar la actualización ahora desde GitHub?",
+                    "DashTweaks - Actualización Disponible",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information
+                );
+
+                if (ask == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = updateResult.DownloadUrl,
+                            UseShellExecute = true
+                        });
+                        LogMessage($"[ACTUALIZADOR] Abriendo enlace de descarga: {updateResult.DownloadUrl}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"[ERROR] No se pudo abrir el navegador: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                LogMessage($"[ACTUALIZADOR] DashTweaks está al día (v{updateResult.CurrentVersion}).");
+                MessageBox.Show(
+                    $"Tienes instalada la última versión disponible (v{updateResult.CurrentVersion}).\n\n¡Tu sistema está al día!",
+                    "DashTweaks - Actualizaciones",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information
+                );
+            }
+        }
+        finally
+        {
+            SetBusyState(false, "Listo");
+        }
+    }
+
     private void SetBusyState(bool isBusy, string statusText)
     {
         _isBusy = isBusy;
@@ -1206,6 +1303,7 @@ public partial class MainWindow : Window
         BtnRestoreBloatware.IsEnabled = !isBusy;
         BtnRefreshBloatware.IsEnabled = !isBusy;
         BtnRefreshStartup.IsEnabled = !isBusy;
+        BtnCheckUpdates.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {
