@@ -40,6 +40,9 @@ public partial class MainWindow : Window
     private readonly TimerResolutionTweak _timerResolutionTweak = new();
     private readonly NetworkLatencyTweak _networkLatencyTweak = new();
     private readonly MsiModeTweak _msiModeTweak = new();
+    private readonly CoreParkingTweak _coreParkingTweak = new();
+    private readonly PrioritySeparationTweak _prioritySeparationTweak = new();
+    private readonly HidPriorityTweak _hidPriorityTweak = new();
 
     private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
@@ -88,7 +91,7 @@ public partial class MainWindow : Window
 
         UpdateNetworkDashboardStatus(_networkLatencyTweak.IsApplied);
 
-        LogMessage("DashTweaks v2.0 (Ultimate Edition) inicializado.");
+        LogMessage("DashTweaks v2.3 (Pro Peripheral & Core Edition) inicializado.");
         LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
     }
 
@@ -627,6 +630,9 @@ public partial class MainWindow : Window
         Tweaks.Add(new TweakItemViewModel(new EcoQosTweak()));
         Tweaks.Add(new TweakItemViewModel(_networkLatencyTweak));
         Tweaks.Add(new TweakItemViewModel(_msiModeTweak));
+        Tweaks.Add(new TweakItemViewModel(_coreParkingTweak));
+        Tweaks.Add(new TweakItemViewModel(_prioritySeparationTweak));
+        Tweaks.Add(new TweakItemViewModel(_hidPriorityTweak));
     }
 
     private void InitializeServices()
@@ -745,11 +751,15 @@ public partial class MainWindow : Window
         {
             if (item.Risk == RiskLevel.Aggressive)
             {
-                string warningText = item.Tweak is MsiModeTweak
-                    ? "ADVERTENCIA DE RIESGO AGRESIVO (Modo MSI):\n\nEsto cambiará la forma en que tu GPU y tarjeta de red se comunican con la CPU. Mejora la latencia y fluidez en el 90% de los casos, pero en hardware muy antiguo puede causar inestabilidad o pantallazos azules.\n\nLa app creará un punto de restauración antes y un archivo RESCATE_MSI.bat en tu Escritorio.\n\n¿Deseas activar el modo MSI?"
-                    : item.Tweak is NetworkLatencyTweak
-                        ? "ADVERTENCIA DE RENDIMIENTO Y RED:\n\nEste tweak desactiva la moderación de interrupciones (Interrupt Moderation) y los modos de ahorro de energía en tu tarjeta de red activa para procesar paquetes inmediatamente.\n\n• Puede aumentar el uso de CPU en procesadores de gama baja.\n• NO es compatible con conexiones Wi-Fi (solo Ethernet por cable).\n\n¿Deseas activar esta optimización agresiva?"
-                        : "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?";
+                string warningText = item.Tweak is HidPriorityTweak
+                    ? "ADVERTENCIA DE RIESGO AGRESIVO (Prioridad IRQ para Ratón y Teclado):\n\nAumenta la prioridad de interrupción de tu ratón y teclado para reducir el input lag al mínimo.\n\n• Requiere reiniciar el equipo.\n• La app creará un punto de restauración antes.\n\n⚠️ Si tras reiniciar tu ratón o teclado no responden, por favor, reinicia en Modo Seguro y ejecuta el archivo RESCATE_HID.bat que se encuentra en tu Escritorio.\n\n¿Deseas activar esta optimización?"
+                    : item.Tweak is CoreParkingTweak
+                        ? "ADVERTENCIA DE RENDIMIENTO Y ENERGÍA (Core Parking):\n\nMantiene el 100% de los núcleos de la CPU siempre activos evitando que entren en suspensión (Core Parking).\n\n• Aumenta el consumo eléctrico y temperaturas.\n• No recomendado para laptops en batería.\n\n¿Deseas activar esta optimización?"
+                        : item.Tweak is MsiModeTweak
+                            ? "ADVERTENCIA DE RIESGO AGRESIVO (Modo MSI):\n\nEsto cambiará la forma en que tu GPU y tarjeta de red se comunican con la CPU. Mejora la latencia y fluidez en el 90% de los casos, pero en hardware muy antiguo puede causar inestabilidad o pantallazos azules.\n\nLa app creará un punto de restauración antes y un archivo RESCATE_MSI.bat en tu Escritorio.\n\n¿Deseas activar el modo MSI?"
+                            : item.Tweak is NetworkLatencyTweak
+                                ? "ADVERTENCIA DE RENDIMIENTO Y RED:\n\nEste tweak desactiva la moderación de interrupciones (Interrupt Moderation) y los modos de ahorro de energía en tu tarjeta de red activa para procesar paquetes inmediatamente.\n\n• Puede aumentar el uso de CPU en procesadores de gama baja.\n• NO es compatible con conexiones Wi-Fi (solo Ethernet por cable).\n\n¿Deseas activar esta optimización agresiva?"
+                                : "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?";
 
                 var confirmAggressive = MessageBox.Show(
                     warningText,
@@ -884,6 +894,26 @@ public partial class MainWindow : Window
                     MessageBox.Show(msiTweak.StatusMessage, "DashTweaks - Modo MSI", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+            else if (item.Tweak is HidPriorityTweak hidTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Requiere reiniciar el PC]" : "";
+                    LogMessage($"{hidTweak.StatusMessage}{restartNotice}");
+                    MessageBox.Show(
+                        $"{hidTweak.StatusMessage}\n\n⚠️ SALVAGUARDA DE SEGURIDAD:\nSe ha creado un archivo 'RESCATE_HID.bat' en tu Escritorio.\nSi tras reiniciar tu ratón o teclado no responden, entra en Modo Seguro de Windows y ejecuta ese archivo para restaurar la normalidad.\n\nPor favor reinicia tu equipo para aplicar los cambios.",
+                        "DashTweaks - Prioridad HID Activada",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
+                else
+                {
+                    LogMessage(hidTweak.StatusMessage);
+                    MessageBox.Show(hidTweak.StatusMessage, "DashTweaks - Prioridad HID", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
             else
             {
                 if (success)
@@ -928,6 +958,10 @@ public partial class MainWindow : Window
                 else if (item.Tweak is MsiModeTweak)
                 {
                     LogMessage("[MSI MODE] Script de rescate eliminado del Escritorio tras la reversión.");
+                }
+                else if (item.Tweak is HidPriorityTweak)
+                {
+                    LogMessage("[HID] Script de rescate RESCATE_HID.bat eliminado del Escritorio tras la reversión.");
                 }
             }
             else

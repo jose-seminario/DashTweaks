@@ -1,4 +1,4 @@
-# 🚀 DashTweaks v2.0 (Ultimate Gaming Suite)
+# 🚀 DashTweaks v2.3 (Pro Peripheral & Core Edition)
 
 **DashTweaks** es un optimizador de Windows 10/11 de código abierto, diseñado para jugadores competitivos que buscan maximizar el rendimiento, minimizar la latencia DPC y eliminar el stutter **sin sacrificar la seguridad del sistema operativo**.
 
@@ -6,10 +6,10 @@ A diferencia de optimizadores invasivos o suites de pago de código cerrado (caj
 
 ---
 
-## ✨ Características Principales (v2.0)
+## ✨ Características Principales (v2.3)
 
 - 🛡️ **Punto de Restauración Automático (Checkpoint):** Toda sesión de modificación genera un punto de restauración de Windows y vuelca ramas clave del registro y planes de energía antes de tocar el sistema.
-- ⚡ **16 Optimizaciones de Sistema Reversibles:**
+- ⚡ **19 Optimizaciones de Sistema Reversibles:**
   1. *Plan de Energía de Alto Rendimiento* (GUID de máximo desempeño sin alterar planes de fábrica).
   2. *Desactivación de GameDVR y GameBar* (libera recursos de captura).
   3. *Prioridad Multimedia MMCSS para Gaming* (GamingTasks / SFIO con prioridad High).
@@ -25,8 +25,13 @@ A diferencia de optimizadores invasivos o suites de pago de código cerrado (caj
   13. *Resolución del Temporizador del Sistema a 0.5ms* (NtSetTimerResolution con liberación segura al cerrar).
   14. *Eficiencia EcoQoS en Procesos de Fondo* (ahorro de ciclos de CPU sin tocar procesos críticos).
   15. *Optimizador de Latencia de Red (DPC / NIC Tuning)* (Interrupt Moderation, EEE y Green Ethernet desactivados con bloqueo estricto en Wi-Fi).
-  16. *Modo MSI en GPU y Red (Message Signaled Interrupts)* (interrupciones basadas en mensajes PCI con script de rescate automático en el Escritorio).
-- 🚨 **Script de Rescate de Emergencia (`RESCATE_MSI.bat`):** Generado automáticamente en el Escritorio al activar el Modo MSI para restaurar el arranque normal en Modo Seguro ante cualquier imprevisto de controladores antiguos.
+  16. *Modo MSI en GPU y Red (Message Signaled Interrupts)* (interrupciones basadas en mensajes PCI con script de rescate en Escritorio).
+  17. *Desactivación de Core Parking (100% Núcleos Activos)* (CPMINCORES = 100 para evitar latencias de despertar de cores).
+  18. *Prioridad Cuántica de Procesos (Win32PrioritySeparation 26)* (0x1A: intervalos cortos y máxima prioridad al juego en foreground).
+  19. *Prioridad IRQ para Ratón y Teclado (Affinity Policy High)* (DevicePriority = 3 y DevicePolicy = 0 seguro para máxima fluidez).
+- 🚨 **Scripts de Rescate de Emergencia en el Escritorio:**
+  - `RESCATE_MSI.bat`: Restablece el modo normal de interrupciones si el hardware no soporta MSI.
+  - `RESCATE_HID.bat`: Restaura la prioridad IRQ y elimina Affinity Policy por si los periféricos dejaran de responder.
 - 🩺 **Centro de Diagnóstico de Red (Packet Loss, Jitter y Bufferbloat):** Medición en vivo de estabilidad competitiva con fallback TCP ante bloqueos ICMP, test de Bufferbloat bajo descarga activa (con liberación inmediata de ancho de banda) y panel de recomendaciones inteligentes.
 - 🧹 **Desinstalador Seguro de Bloatware UWP:** Escaneo y eliminación reversible de aplicaciones preinstaladas no esenciales de Windows con enlace directo de reinstalación vía Microsoft Store.
 - ⚡ **Gestor de Inicio Rápido (Startup Manager):** Aislamiento seguro (`Software\DashTweaks\Disabled`) de aplicaciones en arranque de Windows sin borrar datos y con advertencia en controladores críticos.

@@ -9,7 +9,7 @@
 1. **Cero Cajas Negras:** Todo tweak es 100% auditable y reversible. No se ejecutan comandos destructivos en segundo plano.
 2. **Backup First:** Toda sesión con cambios al sistema genera automáticamente un punto de restauración (`Checkpoint-Computer`) y realiza un volcado de las ramas clave del registro y planes de energía en `%LOCALAPPDATA%\DashTweaks\Backups\`.
 3. **Seguridad Incondicional:** No se desactivan mitigaciones críticas de seguridad del núcleo (HVCI, VBS, Windows Defender) ni se modifica el almacén BCD (`bcdedit`).
-4. **Rescate en Escritorio:** Modificaciones agresivas a nivel de interrupciones PCI (Modo MSI) generan automáticamente un archivo `RESCATE_MSI.bat` en el Escritorio del usuario con las instrucciones de restauración para Modo Seguro.
+4. **Rescate en Escritorio:** Modificaciones agresivas a nivel de interrupciones de hardware (Modo MSI y Prioridad HID) generan automáticamente scripts de rescate `RESCATE_MSI.bat` y `RESCATE_HID.bat` en el Escritorio del usuario con las instrucciones de restauración para Modo Seguro.
 5. **Privilegios Elevados (UAC):** Manifiesto configurado con `requireAdministrator` para evitar fallos silenciosos por permisos.
 
 ---
@@ -42,7 +42,7 @@ DashTweaks/
     ├── DashTweaks.Tweaks/          # Catálogo desacoplado de optimizaciones
     │   ├── ITweak.cs               # Contrato base con enum RiskLevel (Safe, Moderate, Aggressive)
     │   ├── ServiceManagerTweak.cs  # Control seguro de DiagTrack, SysMain y WSearch
-    │   └── Implementations/        # 16 optimizaciones individuales
+    │   └── Implementations/        # 19 optimizaciones individuales
     │       ├── PowerPlanTweak.cs
     │       ├── GameDvrTweak.cs
     │       ├── MmcSsTweak.cs
@@ -58,11 +58,14 @@ DashTweaks/
     │       ├── TimerResolutionTweak.cs
     │       ├── EcoQosTweak.cs
     │       ├── NetworkLatencyTweak.cs
-    │       └── MsiModeTweak.cs
+    │       ├── MsiModeTweak.cs
+    │       ├── CoreParkingTweak.cs
+    │       ├── PrioritySeparationTweak.cs
+    │       └── HidPriorityTweak.cs
     └── DashTweaks.UI/              # Interfaz gráfica en WPF con tema oscuro Windows 11
         ├── app.manifest            # Forzado UAC (requireAdministrator)
         ├── App.xaml / App.xaml.cs  # Notificaciones en System Tray y cierre seguro
-        ├── MainWindow.xaml         # 5 pestañas temáticas, dashboard de métricas y consola
+        ├── MainWindow.xaml         # 6 pestañas temáticas, dashboard de métricas y consola
         ├── MainWindow.xaml.cs      # Coordinación asíncrona y ciclo de vida
         └── ViewModels/             # ViewModels reactivos para UI
 ```
