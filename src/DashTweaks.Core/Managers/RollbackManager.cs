@@ -89,21 +89,13 @@ public class RollbackManager
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process == null)
-            {
-                errorMessage = "No fue posible iniciar powercfg.exe";
-                return false;
-            }
-
-            process.WaitForExit(5000);
-            if (process.ExitCode == 0)
+            var (exitCode, _, stderr) = ProcessRunner.Run(startInfo, 5000);
+            if (exitCode == 0)
             {
                 return true;
             }
 
-            string errorOutput = process.StandardError.ReadToEnd();
-            errorMessage = $"Error al restaurar plan de energía: {errorOutput.Trim()}";
+            errorMessage = $"Error al restaurar plan de energía: {stderr.Trim()}";
             return false;
         }
         catch (Exception ex)
@@ -133,19 +125,14 @@ public class RollbackManager
                     RedirectStandardError = true
                 };
 
-                using var process = Process.Start(startInfo);
-                if (process != null)
+                var (exitCode, _, stderr) = ProcessRunner.Run(startInfo, 10000);
+                if (exitCode == 0)
                 {
-                    process.WaitForExit(10000);
-                    if (process.ExitCode == 0)
-                    {
-                        restoredCount++;
-                    }
-                    else
-                    {
-                        string err = process.StandardError.ReadToEnd();
-                        errors.Add($"Error al importar '{Path.GetFileName(regFile)}': {err.Trim()}");
-                    }
+                    restoredCount++;
+                }
+                else
+                {
+                    errors.Add($"Error al importar '{Path.GetFileName(regFile)}': {stderr.Trim()}");
                 }
             }
             catch (Exception ex)

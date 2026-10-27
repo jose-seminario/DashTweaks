@@ -298,9 +298,9 @@ public partial class MainWindow : Window
 
         _gameDetector.GameStopped += (gameName) =>
         {
-            Dispatcher.InvokeAsync(() =>
+            Dispatcher.InvokeAsync(async () =>
             {
-                HandleGameStopped(gameName);
+                await HandleGameStoppedAsync(gameName);
             });
         };
 
@@ -347,15 +347,18 @@ public partial class MainWindow : Window
         App.Instance.ShowNotification("DashTweaks - Modo Juego", notif, BalloonIcon.Info);
     }
 
-    private void HandleGameStopped(string gameName)
+    private async Task HandleGameStoppedAsync(string gameName)
     {
         if (!_isAutoGameModeActive) return;
 
         LogMessage($"[DETECTOR] Cierre de juego detectado: {gameName.ToUpperInvariant()}. Restaurando configuración...");
 
-        _processSuspensionTweak.Revert();
-        _mmcSsTweak.Revert();
-        _powerPlanTweak.Revert();
+        await Task.Run(() =>
+        {
+            _processSuspensionTweak.Revert();
+            _mmcSsTweak.Revert();
+            _powerPlanTweak.Revert();
+        });
 
         _isAutoGameModeActive = false;
 

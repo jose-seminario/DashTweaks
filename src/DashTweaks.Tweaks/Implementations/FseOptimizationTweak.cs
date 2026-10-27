@@ -16,6 +16,9 @@ public class FseOptimizationTweak : ITweak
     private object? _originalSfioPriority;
     private bool _hadSfioPriority;
 
+    private bool _applied;
+    public bool IsApplied => _applied;
+
     public string Id => "gpu-fullscreen-exclusive-sfio";
     public string Name => "Optimizaciones de Pantalla Completa y SFIO";
     public string Description => "Fuerza el comportamiento de pantalla completa exclusiva real (FSE Behavior=2) y asigna prioridad Alta a operaciones I/O de juegos (SFIO Priority='High').";
@@ -23,8 +26,15 @@ public class FseOptimizationTweak : ITweak
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;
 
+    public FseOptimizationTweak()
+    {
+        _applied = CheckIsApplied();
+    }
+
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             // 1. HKCU\System\GameConfigStore
@@ -55,6 +65,7 @@ public class FseOptimizationTweak : ITweak
                 }
             }
 
+            _applied = true;
             return true;
         }
         catch
@@ -65,6 +76,8 @@ public class FseOptimizationTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             using (var configKey = Registry.CurrentUser.OpenSubKey(GameConfigStorePath, true))
@@ -74,7 +87,7 @@ public class FseOptimizationTweak : ITweak
                     if (_hadFseMode && _originalFseMode != null)
                         configKey.SetValue("GameDVR_FSEBehaviorMode", _originalFseMode, RegistryValueKind.DWord);
                     else
-                        configKey.DeleteValue("GameDVR_FSEBehaviorMode", false);
+                        configKey.SetValue("GameDVR_FSEBehaviorMode", 0, RegistryValueKind.DWord);
 
                     if (_hadHonorFse && _originalHonorFse != null)
                         configKey.SetValue("GameDVR_HonorUserFSEBehaviorMode", _originalHonorFse, RegistryValueKind.DWord);
@@ -90,11 +103,30 @@ public class FseOptimizationTweak : ITweak
                     if (_hadSfioPriority && _originalSfioPriority != null)
                         taskKey.SetValue("SFIO Priority", _originalSfioPriority, RegistryValueKind.String);
                     else
-                        taskKey.DeleteValue("SFIO Priority", false);
+                        taskKey.SetValue("SFIO Priority", "Normal", RegistryValueKind.String);
                 }
             }
 
+            _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var configKey = Registry.CurrentUser.OpenSubKey(GameConfigStorePath, false);
+            using var taskKey = Registry.LocalMachine.OpenSubKey(GamesTaskPath, false);
+
+            bool fseOk = configKey?.GetValue("GameDVR_FSEBehaviorMode") is int fse && fse == 2;
+            bool sfioOk = string.Equals(taskKey?.GetValue("SFIO Priority")?.ToString(), "High", StringComparison.OrdinalIgnoreCase);
+
+            return fseOk && sfioOk;
         }
         catch
         {

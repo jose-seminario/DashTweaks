@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DashTweaks.Core.Managers;
 
 namespace DashTweaks.Tweaks.Implementations;
 
@@ -38,11 +39,8 @@ public class PowerPlanTweak : ITweak
                 RedirectStandardError = true
             };
 
-            using var process = Process.Start(psi);
-            if (process == null) return false;
-
-            process.WaitForExit(5000);
-            return process.ExitCode == 0;
+            var (exitCode, _, _) = ProcessRunner.Run(psi, 5000);
+            return exitCode == 0;
         }
         catch
         {

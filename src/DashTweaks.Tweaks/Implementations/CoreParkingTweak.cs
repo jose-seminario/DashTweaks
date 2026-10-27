@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DashTweaks.Core.Managers;
 using Microsoft.Win32;
 
 namespace DashTweaks.Tweaks.Implementations;
@@ -89,14 +90,16 @@ public class CoreParkingTweak : ITweak
     {
         try
         {
-            using var proc = Process.Start(new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "powercfg.exe",
                 Arguments = arguments,
                 CreateNoWindow = true,
-                UseShellExecute = false
-            });
-            proc?.WaitForExit(3000);
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            ProcessRunner.Run(psi, 3000);
         }
         catch { }
     }

@@ -16,6 +16,9 @@ public class HidTweak : ITweak
     private RegistryValueKind? _originalKeyboardQueueSizeKind;
     private bool _hadKeyboardQueueSize;
 
+    private bool _applied;
+    public bool IsApplied => _applied;
+
     public string Id => "peripherals-hid-queue-size";
     public string Name => "Latencia de Entrada HID (Buffer Ratón y Teclado)";
     public string Description => "Reduce el tamaño de la cola de eventos a 50 paquetes para disminuir input lag. (Aviso: No recomendado para ratones con tasa de sondeo mayor a 4000Hz).";
@@ -23,8 +26,15 @@ public class HidTweak : ITweak
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => true;
 
+    public HidTweak()
+    {
+        _applied = CheckIsApplied();
+    }
+
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             // 1. MouseDataQueueSize en mouclass
@@ -53,6 +63,7 @@ public class HidTweak : ITweak
                 }
             }
 
+            _applied = true;
             return true;
         }
         catch
@@ -63,6 +74,8 @@ public class HidTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             // 1. Revertir mouclass
@@ -97,7 +110,26 @@ public class HidTweak : ITweak
                 }
             }
 
+            _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var mouKey = Registry.LocalMachine.OpenSubKey(MouclassPath, false);
+            using var kbdKey = Registry.LocalMachine.OpenSubKey(KbdclassPath, false);
+
+            bool mouOk = mouKey?.GetValue("MouseDataQueueSize") is int m && m == 50;
+            bool kbdOk = kbdKey?.GetValue("KeyboardDataQueueSize") is int k && k == 50;
+
+            return mouOk && kbdOk;
         }
         catch
         {

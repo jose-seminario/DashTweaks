@@ -20,6 +20,9 @@ public class NetworkAdvancedTweak : ITweak
     private RegistryValueKind? _originalEnableMulticastKind;
     private bool _hadEnableMulticast;
 
+    private bool _applied;
+    public bool IsApplied => _applied;
+
     public string Id => "network-advanced-throttling";
     public string Name => "Optimización de Red y Responsividad (Desactivar Throttling)";
     public string Description => "Elimina la limitación de red de Windows (NetworkThrottlingIndex=0xFFFFFFFF), prioriza la interfaz (SystemResponsiveness=0) y deshabilita LLMNR para menor ping.";
@@ -27,8 +30,15 @@ public class NetworkAdvancedTweak : ITweak
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;
 
+    public NetworkAdvancedTweak()
+    {
+        _applied = CheckIsApplied();
+    }
+
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             // 1. SystemProfile: NetworkThrottlingIndex & SystemResponsiveness
@@ -63,6 +73,7 @@ public class NetworkAdvancedTweak : ITweak
                 }
             }
 
+            _applied = true;
             return true;
         }
         catch
@@ -73,6 +84,8 @@ public class NetworkAdvancedTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             // 1. Revertir SystemProfile
@@ -86,7 +99,8 @@ public class NetworkAdvancedTweak : ITweak
                     }
                     else
                     {
-                        sysKey.DeleteValue("NetworkThrottlingIndex", false);
+                        // Valor estándar por defecto de fábrica en Windows (10 = 0x0000000A)
+                        sysKey.SetValue("NetworkThrottlingIndex", 10, RegistryValueKind.DWord);
                     }
 
                     if (_hadSystemResponsiveness && _originalSystemResponsiveness != null && _originalSystemResponsivenessKind.HasValue)
@@ -95,7 +109,8 @@ public class NetworkAdvancedTweak : ITweak
                     }
                     else
                     {
-                        sysKey.DeleteValue("SystemResponsiveness", false);
+                        // Valor estándar por defecto de fábrica en Windows (20 = 0x00000014)
+                        sysKey.SetValue("SystemResponsiveness", 20, RegistryValueKind.DWord);
                     }
                 }
             }
@@ -116,7 +131,24 @@ public class NetworkAdvancedTweak : ITweak
                 }
             }
 
+            _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var sysKey = Registry.LocalMachine.OpenSubKey(SystemProfilePath, false);
+            bool netOk = sysKey?.GetValue("NetworkThrottlingIndex") is int net && net == unchecked((int)0xFFFFFFFF);
+            bool respOk = sysKey?.GetValue("SystemResponsiveness") is int resp && resp == 0;
+
+            return netOk && respOk;
         }
         catch
         {

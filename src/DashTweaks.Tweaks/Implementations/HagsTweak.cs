@@ -10,6 +10,9 @@ public class HagsTweak : ITweak
     private object? _originalHwSchMode;
     private RegistryValueKind? _originalHwSchModeKind;
     private bool _hadHwSchMode;
+    private bool _applied;
+
+    public bool IsApplied => _applied;
 
     public string Id => "gpu-hardware-accelerated-scheduling";
     public string Name => "Programación de GPU Acelerada por Hardware (HAGS)";
@@ -18,8 +21,15 @@ public class HagsTweak : ITweak
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;
 
+    public HagsTweak()
+    {
+        _applied = CheckIsApplied();
+    }
+
     public bool Apply()
     {
+        if (_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.CreateSubKey(GraphicsDriversPath, true);
@@ -31,6 +41,7 @@ public class HagsTweak : ITweak
 
             // 2 = Activado
             key.SetValue("HwSchMode", 2, RegistryValueKind.DWord);
+            _applied = true;
             return true;
         }
         catch
@@ -41,6 +52,8 @@ public class HagsTweak : ITweak
 
     public bool Revert()
     {
+        if (!_applied) return true;
+
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(GraphicsDriversPath, true);
@@ -56,7 +69,21 @@ public class HagsTweak : ITweak
                 key.SetValue("HwSchMode", 1, RegistryValueKind.DWord);
             }
 
+            _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(GraphicsDriversPath, false);
+            return key?.GetValue("HwSchMode") is int val && val == 2;
         }
         catch
         {
