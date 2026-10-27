@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="DashTweaks - Optimizador Seguro para Windows Gaming" 
-        Height="800" Width="940"
-        MinHeight="680" MinWidth="800"
+        Height="840" Width="960"
+        MinHeight="700" MinWidth="850"
         WindowStartupLocation="CenterScreen"
         Background="#141416"
         Foreground="#EDEDED"
@@ -55,7 +55,7 @@
             <RowDefinition Height="Auto"/> <!-- Global Backup / Restore Actions -->
             <RowDefinition Height="Auto"/> <!-- Status / Progress Alert Bar -->
             <RowDefinition Height="*"/>    <!-- Tweaks List -->
-            <RowDefinition Height="180"/>  <!-- Console Activity Log -->
+            <RowDefinition Height="170"/>  <!-- Console Activity Log -->
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -69,7 +69,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="DashTweaks" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF"/>
                     <Border Background="#1F3D5C" BorderBrush="#2C5B88" BorderThickness="1" CornerRadius="4" Margin="12,0,0,0" Padding="6,2">
-                        <TextBlock Text="v1.0 • Gaming Edition" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
+                        <TextBlock Text="v1.1 • Gaming &amp; Kernel Edition" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
                 <TextBlock Text="Optimización segura para Windows 10/11 • Cero cajas negras • Backup First" 
@@ -160,7 +160,7 @@
                 </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                    <TextBlock Text="Optimizaciones de Rendimiento" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
+                    <TextBlock Text="Catálogo de Optimizaciones (6 activas)" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
                     <TextBlock Text="* El primer tweak aplicado genera un checkpoint automático de seguridad." FontSize="11" Foreground="#8A8A93" FontStyle="Italic" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                 </DockPanel>
 

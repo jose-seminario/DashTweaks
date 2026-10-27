@@ -27,16 +27,29 @@ public partial class MainWindow : Window
         InitializeTweaks();
         TweaksItemsControl.ItemsSource = Tweaks;
 
-        LogMessage("DashTweaks inicializado en modo de alta seguridad.");
-        LogMessage("Políticas: Backup First • Mitigaciones intactas • Cero cajas negras.");
+        LogMessage("DashTweaks v1.1 inicializado con soporte de optimizaciones Kernel y Memoria.");
+        LogMessage("Políticas activas: Backup First • Mitigaciones intactas • Manejo seguro de P/Invoke.");
     }
 
     private void InitializeTweaks()
     {
+        // 1. Esquema de Energía
         Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
+
+        // 2. Servicios de Juegos
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
+
+        // 3. Prioridades Multimedia (MMCSS)
         Tweaks.Add(new TweakItemViewModel(new MmcSsTweak()));
+
+        // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
+
+        // 5. Suspensión de Procesos en Segundo Plano (OpenGameBoost Style)
+        Tweaks.Add(new TweakItemViewModel(new ProcessSuspensionTweak()));
+
+        // 6. Purga de Memoria Standby (WinMemoryOpt Style)
+        Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
     }
 
     private async void TweakActionButton_Click(object sender, RoutedEventArgs e)
@@ -46,8 +59,24 @@ public partial class MainWindow : Window
 
         if (!item.IsApplied)
         {
-            // FLUJO: APLICAR TWEAK
-            // Regla crítica: Si es la primera optimización de la sesión, exigir Checkpoint
+            // DIÁLOGO PREVENTIVO ESPECÍFICO: Suspensión de Procesos
+            if (item.Tweak is ProcessSuspensionTweak)
+            {
+                var confirm = MessageBox.Show(
+                    "La barra de tareas y el escritorio dejarán de responder temporalmente hasta que reviertas esta acción. Esto es normal y libera recursos para el juego.\n\n¿Deseas suspender los procesos en segundo plano ahora?",
+                    "DashTweaks - Confirmación de Suspensión de Procesos",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning
+                );
+
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    LogMessage("[CANCELADO] El usuario canceló la suspensión de procesos.");
+                    return;
+                }
+            }
+
+            // REGLA CRÍTICA: Primer tweak de la sesión exige Checkpoint de seguridad
             if (!_hasSessionCheckpoint)
             {
                 SetBusyState(true, "Creando punto de restauración... por favor espera");
@@ -81,27 +110,63 @@ public partial class MainWindow : Window
                 }
             }
 
-            // Aplicar el Tweak asíncronamente
+            // Aplicación asíncrona del Tweak
             SetBusyState(true, $"Aplicando tweak '{item.Name}'...");
             LogMessage($"Aplicando tweak: {item.Name}...");
 
             bool success = await Task.Run(() => item.Tweak.Apply());
 
-            if (success)
+            // Manejo específico para MemoryPurgeTweak (evaluación de umbral del 80%)
+            if (item.Tweak is MemoryPurgeTweak memTweak)
             {
-                item.IsApplied = true;
-                string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Reinicia para aplicar]" : "";
-                LogMessage($"[ÉXITO] '{item.Name}' aplicado correctamente.{restartNotice}");
+                if (success)
+                {
+                    item.IsApplied = true;
+                    LogMessage($"[ÉXITO] {memTweak.StatusMessage}");
+                    MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Purga de Memoria", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    LogMessage($"[AVISO] {memTweak.StatusMessage}");
+                    MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Purga Omitida", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            else if (item.Tweak is ProcessSuspensionTweak procTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+                    LogMessage($"[ÉXITO] '{item.Name}' aplicado. ({procTweak.SuspendedCount} procesos secundarios suspendidos).");
+                    MessageBox.Show(
+                        "Procesos secundarios suspendidos exitosamente.\n\nRecuerda presionar 'REVERTIR' al finalizar tu sesión de juego para restaurar el explorador de Windows.",
+                        "DashTweaks - Procesos Suspendidos",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
+                else
+                {
+                    LogMessage($"[AVISO] No se encontraron procesos activos para suspender ({item.Name}).");
+                }
             }
             else
             {
-                LogMessage($"[ERROR] Falló la aplicación de '{item.Name}'. Verifica permisos del registro.");
-                MessageBox.Show(
-                    $"No se pudo aplicar '{item.Name}'.",
-                    "DashTweaks - Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
+                if (success)
+                {
+                    item.IsApplied = true;
+                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Reinicia para aplicar]" : "";
+                    LogMessage($"[ÉXITO] '{item.Name}' aplicado correctamente.{restartNotice}");
+                }
+                else
+                {
+                    LogMessage($"[ERROR] Falló la aplicación de '{item.Name}'. Verifica permisos.");
+                    MessageBox.Show(
+                        $"No se pudo aplicar '{item.Name}'.",
+                        "DashTweaks - Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                }
             }
         }
         else
@@ -117,6 +182,16 @@ public partial class MainWindow : Window
                 item.IsApplied = false;
                 string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer la configuración de red]" : "";
                 LogMessage($"[REVERTIDO] '{item.Name}' restaurado a sus valores previos.{restartNotice}");
+
+                if (item.Tweak is ProcessSuspensionTweak)
+                {
+                    MessageBox.Show(
+                        "Todos los procesos han sido reanudados. La barra de tareas y el escritorio han vuelto a la normalidad.",
+                        "DashTweaks - Procesos Reanudados",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                }
             }
             else
             {
