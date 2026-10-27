@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly SettingsManager _settingsManager = new();
     private readonly GameDetector _gameDetector = new();
     private readonly SystemMonitor _systemMonitor = new();
+    private readonly BloatwareManager _bloatwareManager = new();
 
     // Temporizador de monitoreo en tiempo real
     private readonly DispatcherTimer _monitorTimer = new();
@@ -54,6 +55,7 @@ public partial class MainWindow : Window
     public ObservableCollection<ServiceItemViewModel> Services { get; } = new();
     public ObservableCollection<WhitelistProcessItemViewModel> AllProcesses { get; } = new();
     public ObservableCollection<WhitelistProcessItemViewModel> FilteredProcesses { get; } = new();
+    public ObservableCollection<BloatwareItemViewModel> BloatwareApps { get; } = new();
 
     public MainWindow()
     {
@@ -66,14 +68,16 @@ public partial class MainWindow : Window
         InitializeProcesses();
         InitializeGameDetector();
         InitializeSystemMonitor();
+        InitializeBloatware();
 
         TweaksItemsControl.ItemsSource = Tweaks;
         ServicesItemsControl.ItemsSource = Services;
         ProcessesItemsControl.ItemsSource = FilteredProcesses;
+        BloatwareItemsControl.ItemsSource = BloatwareApps;
 
         ChkAutoGameMode.IsChecked = _settings.AutoGameModeEnabled;
 
-        LogMessage("DashTweaks v1.5 (Live Monitor & Gaming Profile) inicializado.");
+        LogMessage("DashTweaks v1.6 (Bloatware Remover Edition) inicializado.");
         LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
     }
 
@@ -83,7 +87,6 @@ public partial class MainWindow : Window
     {
         base.OnPropertyChanged(e);
 
-        // Salvaguarda: Pausar el monitor de CPU/RAM si la ventana no es visible para ahorrar recursos
         if (e.Property == IsVisibleProperty)
         {
             if (IsVisible)
@@ -101,7 +104,6 @@ public partial class MainWindow : Window
     {
         if (!_isFinalShutdown)
         {
-            // Ocultar a la bandeja en lugar de matar el proceso
             e.Cancel = true;
             _monitorTimer.Stop();
             Hide();
@@ -170,17 +172,13 @@ public partial class MainWindow : Window
         {
             var metrics = _systemMonitor.GetMetrics();
 
-            // Actualizar interfaz con datos de CPU y RAM
             TxtCpuUsage.Text = $"{metrics.CpuUsagePercent:0.0} %";
             PbCpuUsage.Value = metrics.CpuUsagePercent;
 
             TxtRamUsage.Text = $"{metrics.RamUsagePercent}% ({metrics.UsedRamMb:N0} MB / {metrics.TotalRamMb:N0} MB)";
             PbRamUsage.Value = metrics.RamUsagePercent;
         }
-        catch
-        {
-            // Evitar interrupciones en el ciclo de muestreo
-        }
+        catch { }
     }
 
     #endregion
@@ -210,7 +208,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 1. Validar Checkpoint obligatorio de la sesión
         if (!_hasSessionCheckpoint)
         {
             bool checkpointOk = await EnsureSessionCheckpointAsync("Perfil Recomendado");
@@ -227,7 +224,6 @@ public partial class MainWindow : Window
         {
             if (RecommendedProfileTweakIds.Contains(vm.Id))
             {
-                // Salvaguarda 2: Comprobar si ya está aplicado para evitar doble ejecución
                 if (vm.IsApplied)
                 {
                     LogMessage($"[PERFIL] '{vm.Name}' ya estaba activo, omitiendo.");
@@ -365,50 +361,152 @@ public partial class MainWindow : Window
 
     #endregion
 
+    #region Desinstalador de Bloatware UWP
+
+    private void InitializeBloatware()
+    {
+        _ = RefreshBloatwareAsync();
+    }
+
+    private async Task RefreshBloatwareAsync()
+    {
+        SetBusyState(true, "Consultando aplicaciones UWP instaladas...");
+        LogMessage("[BLOATWARE] Escaneando aplicaciones preinstaladas de Windows...");
+
+        try
+        {
+            var apps = await Task.Run(() => _bloatwareManager.GetInstalledBloatware());
+
+            BloatwareApps.Clear();
+            foreach (var app in apps)
+            {
+                BloatwareApps.Add(new BloatwareItemViewModel(app));
+            }
+
+            int installedCount = BloatwareApps.Count(a => a.IsInstalled);
+            LogMessage($"[BLOATWARE] Escaneo completado: {installedCount} apps no esenciales detectadas.");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[ERROR] Error al consultar Bloatware: {ex.Message}");
+        }
+        finally
+        {
+            SetBusyState(false, "Listo");
+        }
+    }
+
+    private async void BtnUninstallBloatware_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        var selected = BloatwareApps.Where(a => a.IsSelected && a.IsInstalled).ToList();
+        if (!selected.Any())
+        {
+            MessageBox.Show("Selecciona al menos una aplicación que esté instalada para desinstalar.", "DashTweaks - Bloatware", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"¿Deseas desinstalar las {selected.Count} aplicaciones seleccionadas?\n\n(Podrás volver a instalarlas desde la Microsoft Store en cualquier momento).",
+            "Confirmación de Desinstalación",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question
+        );
+
+        if (confirm != MessageBoxResult.Yes) return;
+
+        if (!_hasSessionCheckpoint)
+        {
+            bool checkpointOk = await EnsureSessionCheckpointAsync("Desinstalación de Bloatware");
+            if (!checkpointOk) return;
+        }
+
+        SetBusyState(true, "Desinstalando aplicaciones seleccionadas...");
+        LogMessage("--- Iniciando Desinstalación de Bloatware ---");
+
+        int successCount = 0;
+
+        await Task.Run(() =>
+        {
+            foreach (var item in selected)
+            {
+                bool ok = _bloatwareManager.UninstallApp(item.AppInfo, out string msg);
+                Dispatcher.Invoke(() =>
+                {
+                    item.IsInstalled = item.AppInfo.IsInstalled;
+                    if (ok)
+                    {
+                        successCount++;
+                        LogMessage(msg);
+                    }
+                    else
+                    {
+                        LogMessage(msg);
+                    }
+                });
+            }
+        });
+
+        SetBusyState(false, "Listo");
+        MessageBox.Show($"Operación finalizada. {successCount} aplicaciones desinstaladas.", "DashTweaks - Bloatware", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private async void BtnRestoreBloatware_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        var selected = BloatwareApps.Where(a => a.IsSelected).ToList();
+        if (!selected.Any())
+        {
+            MessageBox.Show("Selecciona al menos una aplicación para restaurar.", "DashTweaks - Restauración de Apps", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        SetBusyState(true, "Restaurando aplicaciones vía Store / Winget...");
+        LogMessage("--- Restaurando Aplicaciones UWP ---");
+
+        await Task.Run(() =>
+        {
+            foreach (var item in selected)
+            {
+                bool ok = _bloatwareManager.RestoreApp(item.AppInfo, out string msg);
+                Dispatcher.Invoke(() =>
+                {
+                    item.IsInstalled = item.AppInfo.IsInstalled;
+                    LogMessage(msg);
+                });
+            }
+        });
+
+        SetBusyState(false, "Listo");
+        MessageBox.Show("Proceso de restauración completado. Las aplicaciones iniciaron su reinstalación vía Winget o abrieron la tienda Microsoft Store.", "DashTweaks - Restauración", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private async void BtnRefreshBloatware_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshBloatwareAsync();
+    }
+
+    #endregion
+
     #region Inicialización de Componentes
 
     private void InitializeTweaks()
     {
-        // 1. Esquema de Energía
         Tweaks.Add(new TweakItemViewModel(_powerPlanTweak));
-
-        // 2. Servicios de Juegos (GameDVR)
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
-
-        // 3. Prioridades Multimedia (MMCSS)
         Tweaks.Add(new TweakItemViewModel(_mmcSsTweak));
-
-        // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
-
-        // 5. Suspensión de Procesos en Segundo Plano
         Tweaks.Add(new TweakItemViewModel(_processSuspensionTweak));
-
-        // 6. Purga de Memoria Standby
         Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
-
-        // 7. Optimización de Red Avanzada & LLMNR
         Tweaks.Add(new TweakItemViewModel(new NetworkAdvancedTweak()));
-
-        // 8. Latencia de Entrada HID (Buffer Ratón y Teclado)
         Tweaks.Add(new TweakItemViewModel(new HidTweak()));
-
-        // 9. Hardware-Accelerated GPU Scheduling (HAGS)
         Tweaks.Add(new TweakItemViewModel(new HagsTweak()));
-
-        // 10. Separación de Grupos de SvcHost (64 MB)
         Tweaks.Add(new TweakItemViewModel(new SvcHostSplitTweak()));
-
-        // 11. Desactivación de Aceleración de Ratón (Precisión 1:1)
         Tweaks.Add(new TweakItemViewModel(new MouseAccelerationTweak()));
-
-        // 12. Full Screen Exclusive (FSE) & Prioridad SFIO
         Tweaks.Add(new TweakItemViewModel(new FseOptimizationTweak()));
-
-        // 13. Resolución del Temporizador a 0.5ms (Riesgo: Aggressive)
         Tweaks.Add(new TweakItemViewModel(_timerResolutionTweak));
-
-        // 14. EcoQoS en Procesos de Fondo
         Tweaks.Add(new TweakItemViewModel(new EcoQosTweak()));
     }
 
@@ -922,6 +1020,8 @@ public partial class MainWindow : Window
 
                 RefreshServiceStates();
                 RefreshRunningProcesses();
+                _ = RefreshBloatwareAsync();
+
                 MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -957,10 +1057,18 @@ public partial class MainWindow : Window
         BtnRefreshServices.IsEnabled = !isBusy;
         BtnRefreshProcesses.IsEnabled = !isBusy;
         BtnSaveWhitelist.IsEnabled = !isBusy;
+        BtnUninstallBloatware.IsEnabled = !isBusy;
+        BtnRestoreBloatware.IsEnabled = !isBusy;
+        BtnRefreshBloatware.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {
             tweak.IsBusy = isBusy;
+        }
+
+        foreach (var app in BloatwareApps)
+        {
+            app.IsBusy = isBusy;
         }
 
         TxtStatus.Text = isBusy ? "Operando..." : statusText;
