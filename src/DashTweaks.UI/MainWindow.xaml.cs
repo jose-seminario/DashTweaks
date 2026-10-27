@@ -114,6 +114,20 @@ public partial class MainWindow : Window
         }
     }
 
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+
+        if (WindowState == WindowState.Minimized)
+        {
+            _monitorTimer.Stop();
+        }
+        else if (IsVisible && !_monitorTimer.IsEnabled)
+        {
+            _monitorTimer.Start();
+        }
+    }
+
     protected override void OnClosing(CancelEventArgs e)
     {
         if (!_isFinalShutdown)
@@ -672,29 +686,44 @@ public partial class MainWindow : Window
                 StringComparer.OrdinalIgnoreCase
             );
 
-            var processes = Process.GetProcesses()
-                .Where(p =>
+            var rawProcesses = Process.GetProcesses();
+            try
+            {
+                var targetProcesses = rawProcesses
+                    .Where(p =>
+                    {
+                        try
+                        {
+                            return p.MainWindowHandle != IntPtr.Zero || IsKnownApp(p.ProcessName);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    })
+                    .OrderBy(p => p.ProcessName);
+
+                foreach (var proc in targetProcesses)
                 {
                     try
                     {
-                        return p.MainWindowHandle != IntPtr.Zero || IsKnownApp(p.ProcessName);
+                        string norm = NormalizeName(proc.ProcessName);
+                        bool isWhitelisted = whitelistSet.Contains(norm);
+                        AllProcesses.Add(new WhitelistProcessItemViewModel(proc.ProcessName, proc.MainWindowTitle, proc.Id, isWhitelisted));
                     }
-                    catch
-                    {
-                        return false;
-                    }
-                })
-                .OrderBy(p => p.ProcessName);
-
-            foreach (var proc in processes)
-            {
-                try
-                {
-                    string norm = NormalizeName(proc.ProcessName);
-                    bool isWhitelisted = whitelistSet.Contains(norm);
-                    AllProcesses.Add(new WhitelistProcessItemViewModel(proc.ProcessName, proc.MainWindowTitle, proc.Id, isWhitelisted));
+                    catch { }
                 }
-                catch { }
+            }
+            finally
+            {
+                foreach (var p in rawProcesses)
+                {
+                    try
+                    {
+                        p.Dispose();
+                    }
+                    catch { }
+                }
             }
 
             ApplyProcessFilter();

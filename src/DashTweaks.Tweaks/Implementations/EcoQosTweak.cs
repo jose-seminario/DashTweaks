@@ -57,49 +57,63 @@ public class EcoQosTweak : ITweak
         int currentPid = Environment.ProcessId;
 
         var processes = Process.GetProcesses();
-        foreach (var proc in processes)
+        try
         {
-            try
+            foreach (var proc in processes)
             {
-                // Salvaguarda 1: Proteger proceso actual de DashTweaks
-                if (proc.Id == currentPid) continue;
-
-                // Salvaguarda 2: Proteger procesos críticos del sistema operativo
-                if (ProtectedSystemProcesses.Contains(proc.ProcessName)) continue;
-
-                // Solo aplicar a procesos en segundo plano sin ventana principal activa
-                if (proc.MainWindowHandle != IntPtr.Zero) continue;
-
-                IntPtr handle = IntPtr.Zero;
                 try
                 {
-                    handle = OpenProcess(PROCESS_SET_INFORMATION, false, proc.Id);
-                    if (handle != IntPtr.Zero)
-                    {
-                        var state = new PROCESS_POWER_THROTTLING_STATE
-                        {
-                            Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
-                            ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
-                            StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
-                        };
+                    // Salvaguarda 1: Proteger proceso actual de DashTweaks
+                    if (proc.Id == currentPid) continue;
 
-                        if (SetProcessInformation(handle, ProcessPowerThrottling, ref state, (uint)Marshal.SizeOf(state)))
+                    // Salvaguarda 2: Proteger procesos críticos del sistema operativo
+                    if (ProtectedSystemProcesses.Contains(proc.ProcessName)) continue;
+
+                    // Solo aplicar a procesos en segundo plano sin ventana principal activa
+                    if (proc.MainWindowHandle != IntPtr.Zero) continue;
+
+                    IntPtr handle = IntPtr.Zero;
+                    try
+                    {
+                        handle = OpenProcess(PROCESS_SET_INFORMATION, false, proc.Id);
+                        if (handle != IntPtr.Zero)
                         {
-                            _throttledPids.Add(proc.Id);
+                            var state = new PROCESS_POWER_THROTTLING_STATE
+                            {
+                                Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+                                ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED,
+                                StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED
+                            };
+
+                            if (SetProcessInformation(handle, ProcessPowerThrottling, ref state, (uint)Marshal.SizeOf(state)))
+                            {
+                                _throttledPids.Add(proc.Id);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (handle != IntPtr.Zero)
+                        {
+                            CloseHandle(handle);
                         }
                     }
                 }
-                finally
+                catch
                 {
-                    if (handle != IntPtr.Zero)
-                    {
-                        CloseHandle(handle);
-                    }
+                    // Continuar si algún proceso tiene acceso restringido
                 }
             }
-            catch
+        }
+        finally
+        {
+            foreach (var proc in processes)
             {
-                // Continuar si algún proceso tiene acceso restringido
+                try
+                {
+                    proc.Dispose();
+                }
+                catch { }
             }
         }
 

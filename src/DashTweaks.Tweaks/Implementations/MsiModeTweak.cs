@@ -136,8 +136,8 @@ public class MsiModeTweak : ITweak
                         }
                         else
                         {
-                            // Si no existía originalmente, desactivar o borrar
-                            msiKey.SetValue("MSISupported", 0, RegistryValueKind.DWord);
+                            // Si no existía originalmente, eliminar el valor para dejar el registro en su estado original idéntico
+                            msiKey.DeleteValue("MSISupported", false);
                         }
                     }
                 }

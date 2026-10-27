@@ -31,9 +31,18 @@ public class SettingsManager
                 }
             }
         }
-        catch
+        catch (Exception)
         {
-            // En caso de corrupción o lectura fallida, devolver configuración predeterminada
+            try
+            {
+                // Si el archivo existe pero está corrupto o ilegible, crear un respaldo para diagnóstico
+                if (File.Exists(ConfigFilePath))
+                {
+                    string corruptBackupPath = Path.Combine(ConfigDirectory, $"config_{DateTime.Now:yyyyMMdd_HHmmss}.corrupted");
+                    File.Copy(ConfigFilePath, corruptBackupPath, true);
+                }
+            }
+            catch { }
         }
 
         var defaultSettings = new DashTweaksSettings();

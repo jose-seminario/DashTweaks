@@ -70,32 +70,46 @@ public class ProcessSuspensionTweak : ITweak
             try
             {
                 var processes = Process.GetProcessesByName(processName);
-                foreach (var proc in processes)
+                try
                 {
-                    IntPtr handle = IntPtr.Zero;
-                    try
+                    foreach (var proc in processes)
                     {
-                        handle = OpenProcess(ProcessSuspendResumeAccess, false, proc.Id);
-                        if (handle != IntPtr.Zero)
+                        IntPtr handle = IntPtr.Zero;
+                        try
                         {
-                            uint status = NtSuspendProcess(handle);
-                            if (status == 0) // STATUS_SUCCESS = 0
+                            handle = OpenProcess(ProcessSuspendResumeAccess, false, proc.Id);
+                            if (handle != IntPtr.Zero)
                             {
-                                _suspendedProcessIds.Add(proc.Id);
+                                uint status = NtSuspendProcess(handle);
+                                if (status == 0) // STATUS_SUCCESS = 0
+                                {
+                                    _suspendedProcessIds.Add(proc.Id);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Continuar con los demás si uno falla
+                        }
+                        finally
+                        {
+                            // Crítico: Cerrar el handle inmediatamente para prevenir memory leaks
+                            if (handle != IntPtr.Zero)
+                            {
+                                CloseHandle(handle);
                             }
                         }
                     }
-                    catch
+                }
+                finally
+                {
+                    foreach (var proc in processes)
                     {
-                        // Continuar con los demás si uno falla
-                    }
-                    finally
-                    {
-                        // Crítico: Cerrar el handle inmediatamente para prevenir memory leaks
-                        if (handle != IntPtr.Zero)
+                        try
                         {
-                            CloseHandle(handle);
+                            proc.Dispose();
                         }
+                        catch { }
                     }
                 }
             }

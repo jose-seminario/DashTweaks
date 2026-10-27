@@ -67,19 +67,33 @@ public class GameDetector : IDisposable
                 var currentRunningGames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 var processes = Process.GetProcesses();
-                foreach (var proc in processes)
+                try
                 {
-                    try
+                    foreach (var proc in processes)
                     {
-                        string name = proc.ProcessName.ToLowerInvariant();
-                        if (_knownGameProcesses.Contains(name))
+                        try
                         {
-                            currentRunningGames.Add(name);
+                            string name = proc.ProcessName.ToLowerInvariant();
+                            if (_knownGameProcesses.Contains(name))
+                            {
+                                currentRunningGames.Add(name);
+                            }
+                        }
+                        catch
+                        {
+                            // Proceso cerrado durante la lectura
                         }
                     }
-                    catch
+                }
+                finally
+                {
+                    foreach (var proc in processes)
                     {
-                        // Proceso cerrado durante la lectura
+                        try
+                        {
+                            proc.Dispose();
+                        }
+                        catch { }
                     }
                 }
 
