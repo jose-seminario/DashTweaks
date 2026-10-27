@@ -14,7 +14,7 @@ public class SystemMetrics
 public class SystemMonitor : IDisposable
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private class MEMORYSTATUSEX
+    private struct MEMORYSTATUSEX
     {
         public uint dwLength;
         public uint dwMemoryLoad;
@@ -26,15 +26,18 @@ public class SystemMonitor : IDisposable
         public ulong ullAvailVirtual;
         public ulong ullAvailExtendedVirtual;
 
-        public MEMORYSTATUSEX()
+        public static MEMORYSTATUSEX Create()
         {
-            dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+            return new MEMORYSTATUSEX
+            {
+                dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>()
+            };
         }
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
 
     private PerformanceCounter? _cpuCounter;
     private bool _isInitialized;
@@ -74,8 +77,8 @@ public class SystemMonitor : IDisposable
         // 2. Obtener métricas de RAM con GlobalMemoryStatusEx
         try
         {
-            var memStatus = new MEMORYSTATUSEX();
-            if (GlobalMemoryStatusEx(memStatus))
+            var memStatus = MEMORYSTATUSEX.Create();
+            if (GlobalMemoryStatusEx(ref memStatus))
             {
                 metrics.RamUsagePercent = memStatus.dwMemoryLoad;
                 metrics.TotalRamMb = memStatus.ullTotalPhys / (1024 * 1024);

@@ -226,14 +226,10 @@ public class BackupManager
                     RedirectStandardError = true
                 };
 
-                using var process = Process.Start(startInfo);
-                if (process != null)
+                var run = ProcessRunner.Run(startInfo, 5000);
+                if (!run.TimedOut && run.ExitCode == 0 && File.Exists(targetFilePath))
                 {
-                    process.WaitForExit(5000);
-                    if (process.ExitCode == 0 && File.Exists(targetFilePath))
-                    {
-                        exportedFiles.Add(fileName);
-                    }
+                    exportedFiles.Add(fileName);
                 }
             }
             catch

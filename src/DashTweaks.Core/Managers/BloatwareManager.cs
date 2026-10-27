@@ -225,23 +225,19 @@ public class BloatwareManager
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "winget.exe",
-                    Arguments = $"install --id {app.WingetId} --silent --accept-package-agreements --accept-source-agreements",
+                    Arguments = $"install --id \"{app.WingetId}\" --silent --accept-package-agreements --accept-source-agreements",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
 
-                using var process = Process.Start(startInfo);
-                if (process != null)
+                var run = ProcessRunner.Run(startInfo, 30000); // 30 segundos límite para descarga
+                if (!run.TimedOut && run.ExitCode == 0)
                 {
-                    process.WaitForExit(30000); // 30 segundos límite para descarga
-                    if (process.ExitCode == 0)
-                    {
-                        app.IsInstalled = true;
-                        message = $"[ÉXITO] {app.DisplayName} reinstalado exitosamente vía winget.";
-                        return true;
-                    }
+                    app.IsInstalled = true;
+                    message = $"[ÉXITO] {app.DisplayName} reinstalado exitosamente vía winget.";
+                    return true;
                 }
             }
             catch
