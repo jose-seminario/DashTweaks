@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly GameDetector _gameDetector = new();
     private readonly SystemMonitor _systemMonitor = new();
     private readonly BloatwareManager _bloatwareManager = new();
+    private readonly StartupManager _startupManager = new();
 
     // Temporizador de monitoreo en tiempo real
     private readonly DispatcherTimer _monitorTimer = new();
@@ -56,6 +57,7 @@ public partial class MainWindow : Window
     public ObservableCollection<WhitelistProcessItemViewModel> AllProcesses { get; } = new();
     public ObservableCollection<WhitelistProcessItemViewModel> FilteredProcesses { get; } = new();
     public ObservableCollection<BloatwareItemViewModel> BloatwareApps { get; } = new();
+    public ObservableCollection<StartupItemViewModel> StartupItems { get; } = new();
 
     public MainWindow()
     {
@@ -69,15 +71,17 @@ public partial class MainWindow : Window
         InitializeGameDetector();
         InitializeSystemMonitor();
         InitializeBloatware();
+        InitializeStartupItems();
 
         TweaksItemsControl.ItemsSource = Tweaks;
         ServicesItemsControl.ItemsSource = Services;
         ProcessesItemsControl.ItemsSource = FilteredProcesses;
         BloatwareItemsControl.ItemsSource = BloatwareApps;
+        StartupItemsControl.ItemsSource = StartupItems;
 
         ChkAutoGameMode.IsChecked = _settings.AutoGameModeEnabled;
 
-        LogMessage("DashTweaks v1.6 (Bloatware Remover Edition) inicializado.");
+        LogMessage("DashTweaks v1.7 (Startup Manager Edition) inicializado.");
         LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
     }
 
@@ -486,6 +490,112 @@ public partial class MainWindow : Window
     private async void BtnRefreshBloatware_Click(object sender, RoutedEventArgs e)
     {
         await RefreshBloatwareAsync();
+    }
+
+    #endregion
+
+    #region Gestor de Aplicaciones de Inicio (Startup Manager)
+
+    private void InitializeStartupItems()
+    {
+        _ = RefreshStartupItemsAsync();
+    }
+
+    private async Task RefreshStartupItemsAsync()
+    {
+        SetBusyState(true, "Consultando aplicaciones de inicio...");
+        LogMessage("[INICIO] Escaneando entradas de inicio de Windows (HKCU, HKLM y Carpeta)...");
+
+        try
+        {
+            var items = await Task.Run(() => _startupManager.GetStartupItems());
+
+            StartupItems.Clear();
+            foreach (var item in items)
+            {
+                StartupItems.Add(new StartupItemViewModel(item));
+            }
+
+            int enabledCount = StartupItems.Count(i => i.IsEnabled);
+            LogMessage($"[INICIO] Escaneo completado: {StartupItems.Count} aplicaciones detectadas ({enabledCount} habilitadas en el arranque).");
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[ERROR] Error al consultar elementos de inicio: {ex.Message}");
+        }
+        finally
+        {
+            SetBusyState(false, "Listo");
+        }
+    }
+
+    private async void StartupCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not CheckBox cb || cb.DataContext is not StartupItemViewModel itemVm)
+            return;
+
+        bool targetState = cb.IsChecked == true;
+
+        // Protocolo Backup First: Si se va a desactivar y no hay checkpoint previo en la sesión
+        if (!targetState && !_hasSessionCheckpoint)
+        {
+            bool checkpointOk = await EnsureSessionCheckpointAsync("Gestor de Inicio");
+            if (!checkpointOk)
+            {
+                // Revertir estado del CheckBox si se canceló el checkpoint
+                itemVm.IsEnabled = !targetState;
+                return;
+            }
+        }
+
+        itemVm.IsBusy = true;
+
+        if (!targetState)
+        {
+            // Desactivar: Mover de Run a DashTweaks\Disabled o subcarpeta Disabled
+            LogMessage($"[INICIO] Desactivando inicio automático para: {itemVm.Name} ({itemVm.LocationTypeText})...");
+
+            bool success = await Task.Run(() => _startupManager.DisableStartupItem(itemVm.Item, out string msg));
+
+            if (success)
+            {
+                itemVm.IsEnabled = false;
+                LogMessage(msg);
+            }
+            else
+            {
+                itemVm.IsEnabled = true; // Revertir visualmente
+                LogMessage(msg);
+                MessageBox.Show(msg, "DashTweaks - Inicio", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        else
+        {
+            // Reactivar: Devolver a Run o a la carpeta de Inicio
+            LogMessage($"[INICIO] Reactivando inicio automático para: {itemVm.Name} ({itemVm.LocationTypeText})...");
+
+            bool success = await Task.Run(() => _startupManager.EnableStartupItem(itemVm.Item, out string msg));
+
+            if (success)
+            {
+                itemVm.IsEnabled = true;
+                LogMessage(msg);
+            }
+            else
+            {
+                itemVm.IsEnabled = false; // Revertir visualmente
+                LogMessage(msg);
+                MessageBox.Show(msg, "DashTweaks - Inicio", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        itemVm.IsBusy = false;
+    }
+
+    private async void BtnRefreshStartup_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        await RefreshStartupItemsAsync();
     }
 
     #endregion
@@ -1021,6 +1131,7 @@ public partial class MainWindow : Window
                 RefreshServiceStates();
                 RefreshRunningProcesses();
                 _ = RefreshBloatwareAsync();
+                _ = RefreshStartupItemsAsync();
 
                 MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -1060,6 +1171,7 @@ public partial class MainWindow : Window
         BtnUninstallBloatware.IsEnabled = !isBusy;
         BtnRestoreBloatware.IsEnabled = !isBusy;
         BtnRefreshBloatware.IsEnabled = !isBusy;
+        BtnRefreshStartup.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {
@@ -1069,6 +1181,11 @@ public partial class MainWindow : Window
         foreach (var app in BloatwareApps)
         {
             app.IsBusy = isBusy;
+        }
+
+        foreach (var startupItem in StartupItems)
+        {
+            startupItem.IsBusy = isBusy;
         }
 
         TxtStatus.Text = isBusy ? "Operando..." : statusText;
