@@ -3,11 +3,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using DashTweaks.Core.Managers;
 using DashTweaks.Core.Models;
 using DashTweaks.Tweaks;
 using DashTweaks.Tweaks.Implementations;
 using DashTweaks.UI.ViewModels;
+using Hardcodet.Wpf.TaskbarNotification;
 
 namespace DashTweaks.UI;
 
@@ -20,13 +22,33 @@ public partial class MainWindow : Window
     private readonly RollbackManager _rollbackManager = new();
     private readonly ServiceManagerTweak _serviceManager = new();
     private readonly SettingsManager _settingsManager = new();
+    private readonly GameDetector _gameDetector = new();
+    private readonly SystemMonitor _systemMonitor = new();
 
-    // Referencia dedicada al tweak de timer para cierre seguro
+    // Temporizador de monitoreo en tiempo real
+    private readonly DispatcherTimer _monitorTimer = new();
+
+    // Tweaks específicos para el Auto-Game Mode y control de energía
+    private readonly PowerPlanTweak _powerPlanTweak = new();
+    private readonly MmcSsTweak _mmcSsTweak = new();
+    private readonly ProcessSuspensionTweak _processSuspensionTweak = new();
     private readonly TimerResolutionTweak _timerResolutionTweak = new();
 
     private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
     private bool _isBusy = false;
+    private bool _isFinalShutdown = false;
+    private bool _isAutoGameModeActive = false;
+
+    // Lista de IDs que componen el Perfil Recomendado (Gaming)
+    private static readonly HashSet<string> RecommendedProfileTweakIds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "power-plan-high-performance",
+        "gaming-disable-gamedvr",
+        "system-mmcss-gaming-priority",
+        "gpu-fullscreen-exclusive-sfio",
+        "system-svchost-split-threshold"
+    };
 
     public ObservableCollection<TweakItemViewModel> Tweaks { get; } = new();
     public ObservableCollection<ServiceItemViewModel> Services { get; } = new();
@@ -42,42 +64,325 @@ public partial class MainWindow : Window
         InitializeTweaks();
         InitializeServices();
         InitializeProcesses();
+        InitializeGameDetector();
+        InitializeSystemMonitor();
 
         TweaksItemsControl.ItemsSource = Tweaks;
         ServicesItemsControl.ItemsSource = Services;
         ProcessesItemsControl.ItemsSource = FilteredProcesses;
 
-        LogMessage("DashTweaks v1.3 (Ultimate Edition) inicializado.");
-        LogMessage("14 Optimizaciones disponibles • Niveles de Riesgo: Safe, Moderate y Aggressive.");
+        ChkAutoGameMode.IsChecked = _settings.AutoGameModeEnabled;
+
+        LogMessage("DashTweaks v1.5 (Live Monitor & Gaming Profile) inicializado.");
+        LogMessage($"Dashboard activo • Detector de Juegos: {(_settings.AutoGameModeEnabled ? "Activo" : "Desactivado")}.");
+    }
+
+    #region Inicialización y Ciclo de Vida de la Ventana
+
+    protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+
+        // Salvaguarda: Pausar el monitor de CPU/RAM si la ventana no es visible para ahorrar recursos
+        if (e.Property == IsVisibleProperty)
+        {
+            if (IsVisible)
+            {
+                _monitorTimer.Start();
+            }
+            else
+            {
+                _monitorTimer.Stop();
+            }
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        // Salvaguarda 1: Cierre seguro del temporizador de 0.5ms al cerrar la ventana
+        if (!_isFinalShutdown)
+        {
+            // Ocultar a la bandeja en lugar de matar el proceso
+            e.Cancel = true;
+            _monitorTimer.Stop();
+            Hide();
+            App.Instance.ShowNotification("DashTweaks", "Ejecutándose en segundo plano en la bandeja del sistema.", BalloonIcon.Info);
+        }
+        else
+        {
+            _monitorTimer.Stop();
+            _systemMonitor.Dispose();
+
+            if (_timerResolutionTweak.IsActive)
+            {
+                _timerResolutionTweak.Revert();
+            }
+            _gameDetector.Dispose();
+            base.OnClosing(e);
+        }
+    }
+
+    public void PrepareForFinalShutdown()
+    {
+        _isFinalShutdown = true;
+
+        _monitorTimer.Stop();
+        _systemMonitor.Dispose();
+
+        if (_isAutoGameModeActive)
+        {
+            _processSuspensionTweak.Revert();
+            _mmcSsTweak.Revert();
+            _powerPlanTweak.Revert();
+        }
+
         if (_timerResolutionTweak.IsActive)
         {
             _timerResolutionTweak.Revert();
         }
 
-        base.OnClosing(e);
+        _gameDetector.Stop();
+        _gameDetector.Dispose();
+
+        Close();
     }
+
+    public void SyncAutoGameModeState(bool isEnabled)
+    {
+        _settings.AutoGameModeEnabled = isEnabled;
+        ChkAutoGameMode.IsChecked = isEnabled;
+        LogMessage($"[CONFIG] Auto-Game Mode sincronizado: {(isEnabled ? "ACTIVADO" : "DESACTIVADO")}.");
+    }
+
+    #endregion
+
+    #region Dashboard de Monitoreo en Tiempo Real
+
+    private void InitializeSystemMonitor()
+    {
+        _monitorTimer.Interval = TimeSpan.FromMilliseconds(1000);
+        _monitorTimer.Tick += MonitorTimer_Tick;
+        _monitorTimer.Start();
+    }
+
+    private void MonitorTimer_Tick(object? sender, EventArgs e)
+    {
+        try
+        {
+            var metrics = _systemMonitor.GetMetrics();
+
+            // Actualizar interfaz con datos de CPU y RAM
+            TxtCpuUsage.Text = $"{metrics.CpuUsagePercent:0.0} %";
+            PbCpuUsage.Value = metrics.CpuUsagePercent;
+
+            TxtRamUsage.Text = $"{metrics.RamUsagePercent}% ({metrics.UsedRamMb:N0} MB / {metrics.TotalRamMb:N0} MB)";
+            PbRamUsage.Value = metrics.RamUsagePercent;
+        }
+        catch
+        {
+            // Evitar interrupciones en el ciclo de muestreo
+        }
+    }
+
+    #endregion
+
+    #region Lógica del Perfil Recomendado (Gaming)
+
+    private async void BtnApplyRecommendedProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        var confirm = MessageBox.Show(
+            "El Perfil Recomendado aplicará de forma segura las optimizaciones esenciales sin tocar red ni timers agresivos:\n\n" +
+            "• Plan de Energía: Alto Rendimiento\n" +
+            "• Desactivar GameDVR y capturas\n" +
+            "• Prioridad MMCSS para videojuegos\n" +
+            "• Pantalla completa exclusiva (FSE) y SFIO\n" +
+            "• Separación de procesos SvcHost (64 MB)\n\n" +
+            "¿Deseas aplicar este perfil ahora?",
+            "DashTweaks - Perfil Recomendado (Gaming)",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question
+        );
+
+        if (confirm != MessageBoxResult.Yes)
+        {
+            LogMessage("[CANCELADO] El usuario canceló la aplicación del perfil recomendado.");
+            return;
+        }
+
+        // 1. Validar Checkpoint obligatorio de la sesión
+        if (!_hasSessionCheckpoint)
+        {
+            bool checkpointOk = await EnsureSessionCheckpointAsync("Perfil Recomendado");
+            if (!checkpointOk) return;
+        }
+
+        SetBusyState(true, "Aplicando Perfil Recomendado...");
+        LogMessage("--- Aplicando Perfil Recomendado (Gaming) ---");
+
+        int appliedCount = 0;
+        int skippedCount = 0;
+
+        foreach (var vm in Tweaks)
+        {
+            if (RecommendedProfileTweakIds.Contains(vm.Id))
+            {
+                // Salvaguarda 2: Comprobar si ya está aplicado para evitar doble ejecución
+                if (vm.IsApplied)
+                {
+                    LogMessage($"[PERFIL] '{vm.Name}' ya estaba activo, omitiendo.");
+                    skippedCount++;
+                    continue;
+                }
+
+                LogMessage($"[PERFIL] Aplicando '{vm.Name}'...");
+                bool ok = await Task.Run(() => vm.Tweak.Apply());
+
+                if (ok)
+                {
+                    vm.IsApplied = true;
+                    appliedCount++;
+                    LogMessage($"[PERFIL] '{vm.Name}' aplicado con éxito.");
+                }
+                else
+                {
+                    LogMessage($"[ERROR] Falló la aplicación de '{vm.Name}'.");
+                }
+            }
+        }
+
+        SetBusyState(false, "Listo");
+
+        string summary = $"Perfil Gaming aplicado con éxito ({appliedCount} nuevos, {skippedCount} ya activos). Reinicia para aplicar cambios de red/GPU.";
+        LogMessage($"[PERFIL] {summary}");
+        MessageBox.Show(summary, "DashTweaks - Perfil Recomendado", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    #endregion
+
+    #region Detector de Juegos (GameDetector)
+
+    private void InitializeGameDetector()
+    {
+        _gameDetector.GameStarted += (gameName) =>
+        {
+            Dispatcher.InvokeAsync(async () =>
+            {
+                await HandleGameStartedAsync(gameName);
+            });
+        };
+
+        _gameDetector.GameStopped += (gameName) =>
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                HandleGameStopped(gameName);
+            });
+        };
+
+        _gameDetector.Start();
+    }
+
+    private async Task HandleGameStartedAsync(string gameName)
+    {
+        if (!_settings.AutoGameModeEnabled) return;
+        if (_isAutoGameModeActive) return;
+
+        LogMessage($"[DETECTOR] Juego detectado: {gameName.ToUpperInvariant()}. Iniciando protocolo Auto-Game Mode...");
+
+        if (!_hasSessionCheckpoint)
+        {
+            LogMessage("[SEGURIDAD] Generando Checkpoint previo a la auto-optimización...");
+            BackupResult backupResult = await Task.Run(() => _backupManager.CreateCheckpoint());
+            if (backupResult.Success)
+            {
+                _hasSessionCheckpoint = true;
+                LogMessage($"[CHECKPOINT OK] Respaldo guardado en: {backupResult.BackupPath}");
+            }
+            else
+            {
+                LogMessage($"[AVISO] No se pudo crear el Checkpoint automático: {backupResult.Message}");
+            }
+        }
+
+        await Task.Run(() =>
+        {
+            _powerPlanTweak.Apply();
+            _mmcSsTweak.Apply();
+            _processSuspensionTweak.Apply();
+        });
+
+        _isAutoGameModeActive = true;
+
+        UpdateTweakVisualStatus(_powerPlanTweak.Id, true);
+        UpdateTweakVisualStatus(_mmcSsTweak.Id, true);
+        UpdateTweakVisualStatus(_processSuspensionTweak.Id, true);
+
+        string notif = $"DashTweaks: Game Mode ACTIVADO para {gameName.ToUpperInvariant()}";
+        LogMessage($"[AUTO-GAME MODE] Activado con éxito para '{gameName}'.");
+        App.Instance.ShowNotification("DashTweaks - Modo Juego", notif, BalloonIcon.Info);
+    }
+
+    private void HandleGameStopped(string gameName)
+    {
+        if (!_isAutoGameModeActive) return;
+
+        LogMessage($"[DETECTOR] Cierre de juego detectado: {gameName.ToUpperInvariant()}. Restaurando configuración...");
+
+        _processSuspensionTweak.Revert();
+        _mmcSsTweak.Revert();
+        _powerPlanTweak.Revert();
+
+        _isAutoGameModeActive = false;
+
+        UpdateTweakVisualStatus(_powerPlanTweak.Id, false);
+        UpdateTweakVisualStatus(_mmcSsTweak.Id, false);
+        UpdateTweakVisualStatus(_processSuspensionTweak.Id, false);
+
+        string notif = "DashTweaks: Game Mode DESACTIVADO. Sistema restaurado";
+        LogMessage($"[AUTO-GAME MODE] Desactivado. Sistema restaurado a valores previos.");
+        App.Instance.ShowNotification("DashTweaks - Modo Juego", notif, BalloonIcon.Info);
+    }
+
+    private void UpdateTweakVisualStatus(string tweakId, bool isApplied)
+    {
+        var vm = Tweaks.FirstOrDefault(t => t.Id == tweakId);
+        if (vm != null)
+        {
+            vm.IsApplied = isApplied;
+        }
+    }
+
+    private void ChkAutoGameMode_Changed(object sender, RoutedEventArgs e)
+    {
+        bool isEnabled = ChkAutoGameMode.IsChecked == true;
+        _settings.AutoGameModeEnabled = isEnabled;
+        _settingsManager.SaveSettings(_settings);
+
+        LogMessage($"[CONFIG] Auto-Game Mode {(isEnabled ? "ACTIVADO" : "DESACTIVADO")}.");
+        App.Instance.ShowNotification("DashTweaks", $"Auto-Game Mode {(isEnabled ? "ACTIVADO" : "DESACTIVADO")}", BalloonIcon.Info);
+    }
+
+    #endregion
+
+    #region Inicialización de Componentes
 
     private void InitializeTweaks()
     {
         // 1. Esquema de Energía
-        Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
+        Tweaks.Add(new TweakItemViewModel(_powerPlanTweak));
 
         // 2. Servicios de Juegos (GameDVR)
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
 
         // 3. Prioridades Multimedia (MMCSS)
-        Tweaks.Add(new TweakItemViewModel(new MmcSsTweak()));
+        Tweaks.Add(new TweakItemViewModel(_mmcSsTweak));
 
         // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
 
         // 5. Suspensión de Procesos en Segundo Plano
-        Tweaks.Add(new TweakItemViewModel(new ProcessSuspensionTweak()));
+        Tweaks.Add(new TweakItemViewModel(_processSuspensionTweak));
 
         // 6. Purga de Memoria Standby
         Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
@@ -166,10 +471,7 @@ public partial class MainWindow : Window
                     bool isWhitelisted = whitelistSet.Contains(norm);
                     AllProcesses.Add(new WhitelistProcessItemViewModel(proc.ProcessName, proc.MainWindowTitle, proc.Id, isWhitelisted));
                 }
-                catch
-                {
-                    // Ignorar procesos cerrados durante la iteración
-                }
+                catch { }
             }
 
             ApplyProcessFilter();
@@ -213,6 +515,8 @@ public partial class MainWindow : Window
         return clean.ToLowerInvariant();
     }
 
+    #endregion
+
     #region Manejo de Tweaks Individuales
 
     private async void TweakActionButton_Click(object sender, RoutedEventArgs e)
@@ -222,7 +526,6 @@ public partial class MainWindow : Window
 
         if (!item.IsApplied)
         {
-            // DIÁLOGO PREVENTIVO EXTRA: Nivel de Riesgo Aggressive (Timer Resolution)
             if (item.Risk == RiskLevel.Aggressive)
             {
                 var confirmAggressive = MessageBox.Show(
@@ -239,7 +542,6 @@ public partial class MainWindow : Window
                 }
             }
 
-            // DIÁLOGO PREVENTIVO: Suspensión de Procesos
             if (item.Tweak is ProcessSuspensionTweak)
             {
                 var confirm = MessageBox.Show(
@@ -256,7 +558,6 @@ public partial class MainWindow : Window
                 }
             }
 
-            // REGLA CRÍTICA: Checkpoint obligatorio en la primera modificación
             if (!_hasSessionCheckpoint)
             {
                 bool checkpointOk = await EnsureSessionCheckpointAsync(item.Name);
@@ -336,7 +637,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            // REVERTIR TWEAK
             SetBusyState(true, $"Revirtiendo '{item.Name}'...");
             LogMessage($"Revirtiendo tweak: {item.Name}...");
 
@@ -651,6 +951,7 @@ public partial class MainWindow : Window
 
         BtnCreateBackup.IsEnabled = !isBusy;
         BtnRestoreBackup.IsEnabled = !isBusy;
+        BtnApplyRecommendedProfile.IsEnabled = !isBusy;
         BtnDisableServices.IsEnabled = !isBusy;
         BtnRestoreServices.IsEnabled = !isBusy;
         BtnRefreshServices.IsEnabled = !isBusy;

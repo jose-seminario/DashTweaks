@@ -5,6 +5,7 @@ namespace DashTweaks.Core.Managers;
 public class DashTweaksSettings
 {
     public List<string> GameModeWhitelist { get; set; } = new() { "discord.exe" };
+    public bool AutoGameModeEnabled { get; set; } = false;
 }
 
 public class SettingsManager
