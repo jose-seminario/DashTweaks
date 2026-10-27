@@ -39,8 +39,8 @@ public class PowerPlanTweak : ITweak
                 RedirectStandardError = true
             };
 
-            var (exitCode, _, _) = ProcessRunner.Run(psi, 5000);
-            return exitCode == 0;
+            var run = ProcessRunner.Run(psi, 5000);
+            return run.ExitCode == 0;
         }
         catch
         {

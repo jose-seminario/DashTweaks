@@ -89,13 +89,13 @@ public class RollbackManager
                 RedirectStandardError = true
             };
 
-            var (exitCode, _, stderr) = ProcessRunner.Run(startInfo, 5000);
-            if (exitCode == 0)
+            var run = ProcessRunner.Run(startInfo, 5000);
+            if (run.ExitCode == 0)
             {
                 return true;
             }
 
-            errorMessage = $"Error al restaurar plan de energía: {stderr.Trim()}";
+            errorMessage = $"Error al restaurar plan de energía: {run.StdErr.Trim()}";
             return false;
         }
         catch (Exception ex)
@@ -125,14 +125,14 @@ public class RollbackManager
                     RedirectStandardError = true
                 };
 
-                var (exitCode, _, stderr) = ProcessRunner.Run(startInfo, 10000);
-                if (exitCode == 0)
+                var run = ProcessRunner.Run(startInfo, 10000);
+                if (run.ExitCode == 0)
                 {
                     restoredCount++;
                 }
                 else
                 {
-                    errors.Add($"Error al importar '{Path.GetFileName(regFile)}': {stderr.Trim()}");
+                    errors.Add($"Error al importar '{Path.GetFileName(regFile)}': {run.StdErr.Trim()}");
                 }
             }
             catch (Exception ex)
