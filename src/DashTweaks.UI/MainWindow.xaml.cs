@@ -15,20 +15,25 @@ public partial class MainWindow : Window
 {
     private readonly BackupManager _backupManager = new();
     private readonly RollbackManager _rollbackManager = new();
+    private readonly ServiceManagerTweak _serviceManager = new();
 
     private bool _hasSessionCheckpoint = false;
     private bool _isBusy = false;
 
     public ObservableCollection<TweakItemViewModel> Tweaks { get; } = new();
+    public ObservableCollection<ServiceItemViewModel> Services { get; } = new();
 
     public MainWindow()
     {
         InitializeComponent();
         InitializeTweaks();
-        TweaksItemsControl.ItemsSource = Tweaks;
+        InitializeServices();
 
-        LogMessage("DashTweaks v1.1 inicializado con soporte de optimizaciones Kernel y Memoria.");
-        LogMessage("Políticas activas: Backup First • Mitigaciones intactas • Manejo seguro de P/Invoke.");
+        TweaksItemsControl.ItemsSource = Tweaks;
+        ServicesItemsControl.ItemsSource = Services;
+
+        LogMessage("DashTweaks v1.2 (Definitive Gaming Edition) inicializado.");
+        LogMessage("Estado: 9 Tweaks disponibles • Gestor de Servicios activo • Modo de Seguridad UAC.");
     }
 
     private void InitializeTweaks()
@@ -36,7 +41,7 @@ public partial class MainWindow : Window
         // 1. Esquema de Energía
         Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
 
-        // 2. Servicios de Juegos
+        // 2. Servicios de Juegos (GameDVR)
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
 
         // 3. Prioridades Multimedia (MMCSS)
@@ -45,12 +50,45 @@ public partial class MainWindow : Window
         // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
 
-        // 5. Suspensión de Procesos en Segundo Plano (OpenGameBoost Style)
+        // 5. Suspensión de Procesos en Segundo Plano
         Tweaks.Add(new TweakItemViewModel(new ProcessSuspensionTweak()));
 
-        // 6. Purga de Memoria Standby (WinMemoryOpt Style)
+        // 6. Purga de Memoria Standby
         Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
+
+        // 7. Optimización de Red Avanzada & LLMNR
+        Tweaks.Add(new TweakItemViewModel(new NetworkAdvancedTweak()));
+
+        // 8. Latencia de Entrada HID (Buffer Ratón y Teclado)
+        Tweaks.Add(new TweakItemViewModel(new HidTweak()));
+
+        // 9. Hardware-Accelerated GPU Scheduling (HAGS)
+        Tweaks.Add(new TweakItemViewModel(new HagsTweak()));
     }
+
+    private void InitializeServices()
+    {
+        RefreshServiceStates();
+    }
+
+    private void RefreshServiceStates()
+    {
+        try
+        {
+            var states = _serviceManager.GetServiceStates();
+            Services.Clear();
+            foreach (var st in states)
+            {
+                Services.Add(new ServiceItemViewModel(st));
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"[AVISO] No se pudieron consultar todos los servicios: {ex.Message}");
+        }
+    }
+
+    #region Manejo de Tweaks Individuales
 
     private async void TweakActionButton_Click(object sender, RoutedEventArgs e)
     {
@@ -59,7 +97,7 @@ public partial class MainWindow : Window
 
         if (!item.IsApplied)
         {
-            // DIÁLOGO PREVENTIVO ESPECÍFICO: Suspensión de Procesos
+            // DIÁLOGO PREVENTIVO: Suspensión de Procesos
             if (item.Tweak is ProcessSuspensionTweak)
             {
                 var confirm = MessageBox.Show(
@@ -76,54 +114,27 @@ public partial class MainWindow : Window
                 }
             }
 
-            // REGLA CRÍTICA: Primer tweak de la sesión exige Checkpoint de seguridad
+            // REGLA CRÍTICA: Primer cambio de la sesión exige Checkpoint obligatorio
             if (!_hasSessionCheckpoint)
             {
-                SetBusyState(true, "Creando punto de restauración... por favor espera");
-                LogMessage($"[SEGURIDAD] Primera optimización solicitada ('{item.Name}'). Generando Checkpoint obligatorio...");
-
-                BackupResult backupResult = await Task.Run(() => _backupManager.CreateCheckpoint());
-
-                if (!backupResult.Success)
-                {
-                    LogMessage($"[CANCELADO] Falló la creación del Checkpoint de seguridad: {backupResult.Message}");
-                    LogMessage("[SEGURIDAD] La optimización ha sido abortada para proteger la integridad del sistema.");
-                    MessageBox.Show(
-                        $"No se pudo crear el backup de seguridad obligatorio:\n\n{backupResult.Message}\n\nLa optimización ha sido cancelada.",
-                        "DashTweaks - Optimización Abortada",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning
-                    );
-                    SetBusyState(false, "Operación cancelada por fallo en backup");
-                    return;
-                }
-
-                _hasSessionCheckpoint = true;
-                LogMessage($"[CHECKPOINT OK] Respaldo guardado en: {backupResult.BackupPath}");
-                if (backupResult.RestorePointCreated)
-                {
-                    LogMessage("[CHECKPOINT OK] Punto de restauración del sistema Windows creado exitosamente.");
-                }
-                else
-                {
-                    LogMessage($"[AVISO] {backupResult.RestorePointMessage}");
-                }
+                bool checkpointOk = await EnsureSessionCheckpointAsync(item.Name);
+                if (!checkpointOk) return;
             }
 
             // Aplicación asíncrona del Tweak
-            SetBusyState(true, $"Aplicando tweak '{item.Name}'...");
+            SetBusyState(true, $"Aplicando '{item.Name}'...");
             LogMessage($"Aplicando tweak: {item.Name}...");
 
             bool success = await Task.Run(() => item.Tweak.Apply());
 
-            // Manejo específico para MemoryPurgeTweak (evaluación de umbral del 80%)
+            // Manejo según tipo de tweak
             if (item.Tweak is MemoryPurgeTweak memTweak)
             {
                 if (success)
                 {
                     item.IsApplied = true;
                     LogMessage($"[ÉXITO] {memTweak.StatusMessage}");
-                    MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Purga de Memoria", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Memoria", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -136,9 +147,9 @@ public partial class MainWindow : Window
                 if (success)
                 {
                     item.IsApplied = true;
-                    LogMessage($"[ÉXITO] '{item.Name}' aplicado. ({procTweak.SuspendedCount} procesos secundarios suspendidos).");
+                    LogMessage($"[ÉXITO] '{item.Name}' aplicado. ({procTweak.SuspendedCount} procesos suspendidos).");
                     MessageBox.Show(
-                        "Procesos secundarios suspendidos exitosamente.\n\nRecuerda presionar 'REVERTIR' al finalizar tu sesión de juego para restaurar el explorador de Windows.",
+                        "Procesos secundarios suspendidos exitosamente.\n\nPresiona 'REVERTIR' al finalizar la partida para restaurar el escritorio de Windows.",
                         "DashTweaks - Procesos Suspendidos",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
@@ -154,25 +165,20 @@ public partial class MainWindow : Window
                 if (success)
                 {
                     item.IsApplied = true;
-                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Reinicia para aplicar]" : "";
+                    string restartNotice = item.RequiresRestart ? " [IMPORTANTE: Requiere reiniciar el PC]" : "";
                     LogMessage($"[ÉXITO] '{item.Name}' aplicado correctamente.{restartNotice}");
                 }
                 else
                 {
-                    LogMessage($"[ERROR] Falló la aplicación de '{item.Name}'. Verifica permisos.");
-                    MessageBox.Show(
-                        $"No se pudo aplicar '{item.Name}'.",
-                        "DashTweaks - Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error
-                    );
+                    LogMessage($"[ERROR] Falló la aplicación de '{item.Name}'. Verifica permisos del registro.");
+                    MessageBox.Show($"No se pudo aplicar '{item.Name}'.", "DashTweaks - Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
         else
         {
-            // FLUJO: REVERTIR TWEAK
-            SetBusyState(true, $"Revirtiendo tweak '{item.Name}'...");
+            // REVERTIR TWEAK
+            SetBusyState(true, $"Revirtiendo '{item.Name}'...");
             LogMessage($"Revirtiendo tweak: {item.Name}...");
 
             bool success = await Task.Run(() => item.Tweak.Revert());
@@ -180,13 +186,13 @@ public partial class MainWindow : Window
             if (success)
             {
                 item.IsApplied = false;
-                string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer la configuración de red]" : "";
+                string restartNotice = item.RequiresRestart ? " [Reinicia para restablecer completamente la configuración]" : "";
                 LogMessage($"[REVERTIDO] '{item.Name}' restaurado a sus valores previos.{restartNotice}");
 
                 if (item.Tweak is ProcessSuspensionTweak)
                 {
                     MessageBox.Show(
-                        "Todos los procesos han sido reanudados. La barra de tareas y el escritorio han vuelto a la normalidad.",
+                        "Todos los procesos han sido reanudados. El escritorio y la barra de tareas han vuelto a la normalidad.",
                         "DashTweaks - Procesos Reanudados",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
@@ -196,16 +202,124 @@ public partial class MainWindow : Window
             else
             {
                 LogMessage($"[ERROR] Falló la reversión de '{item.Name}'.");
-                MessageBox.Show(
-                    $"No se pudo revertir '{item.Name}'.",
-                    "DashTweaks - Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
+                MessageBox.Show($"No se pudo revertir '{item.Name}'.", "DashTweaks - Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         SetBusyState(false, "Listo");
+    }
+
+    #endregion
+
+    #region Gestor de Servicios
+
+    private async void BtnDisableServices_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        var selected = Services.Where(s => s.IsSelected).ToList();
+        if (!selected.Any())
+        {
+            MessageBox.Show("Selecciona al menos un servicio con la casilla correspondiente.", "DashTweaks", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // REGLA CRÍTICA: Checkpoint obligatorio si es la primera modificación de la sesión
+        if (!_hasSessionCheckpoint)
+        {
+            bool checkpointOk = await EnsureSessionCheckpointAsync("Gestor de Servicios");
+            if (!checkpointOk) return;
+        }
+
+        SetBusyState(true, "Deshabilitando servicios seleccionados...");
+        LogMessage("--- Deshabilitando Servicios Seleccionados ---");
+
+        await Task.Run(() =>
+        {
+            foreach (var svc in selected)
+            {
+                bool ok = _serviceManager.DisableService(svc.ServiceName, out string msg);
+                Dispatcher.Invoke(() =>
+                {
+                    if (ok) LogMessage($"[OK] {msg}");
+                    else LogMessage($"[AVISO] {msg}");
+                });
+            }
+        });
+
+        RefreshServiceStates();
+        SetBusyState(false, "Listo");
+        MessageBox.Show("Los servicios seleccionados han sido detenidos y configurados como Deshabilitados.", "DashTweaks - Servicios", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private async void BtnRestoreServices_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+
+        SetBusyState(true, "Restaurando servicios a su estado original...");
+        LogMessage("--- Restaurando Servicios Originales ---");
+
+        await Task.Run(() =>
+        {
+            foreach (var svc in Services)
+            {
+                bool ok = _serviceManager.RestoreService(svc.ServiceName, out string msg);
+                Dispatcher.Invoke(() =>
+                {
+                    if (ok) LogMessage($"[REVERTIDO] {msg}");
+                    else LogMessage($"[AVISO] {msg}");
+                });
+            }
+        });
+
+        RefreshServiceStates();
+        SetBusyState(false, "Listo");
+        MessageBox.Show("Los servicios han sido restablecidos a sus tipos de inicio y estados originales.", "DashTweaks - Servicios", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void BtnRefreshServices_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshServiceStates();
+        LogMessage("[ACTUALIZADO] Estados en vivo de servicios de Windows actualizados.");
+    }
+
+    #endregion
+
+    #region Checkpoints Globales y Auxiliares
+
+    private async Task<bool> EnsureSessionCheckpointAsync(string contextName)
+    {
+        SetBusyState(true, "Creando punto de restauración... por favor espera");
+        LogMessage($"[SEGURIDAD] Primera optimización solicitada ('{contextName}'). Generando Checkpoint obligatorio...");
+
+        BackupResult backupResult = await Task.Run(() => _backupManager.CreateCheckpoint());
+
+        if (!backupResult.Success)
+        {
+            LogMessage($"[CANCELADO] Falló la creación del Checkpoint de seguridad: {backupResult.Message}");
+            LogMessage("[SEGURIDAD] La operación ha sido abortada para proteger el sistema.");
+            MessageBox.Show(
+                $"No se pudo crear el backup de seguridad obligatorio:\n\n{backupResult.Message}\n\nLa operación ha sido cancelada.",
+                "DashTweaks - Operación Abortada",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning
+            );
+            SetBusyState(false, "Operación cancelada por fallo en backup");
+            return false;
+        }
+
+        _hasSessionCheckpoint = true;
+        LogMessage($"[CHECKPOINT OK] Respaldo guardado en: {backupResult.BackupPath}");
+        if (backupResult.RestorePointCreated)
+        {
+            LogMessage("[CHECKPOINT OK] Punto de restauración del sistema Windows creado exitosamente.");
+        }
+        else
+        {
+            LogMessage($"[AVISO] {backupResult.RestorePointMessage}");
+        }
+
+        return true;
     }
 
     private async void BtnCreateBackup_Click(object sender, RoutedEventArgs e)
@@ -306,6 +420,7 @@ public partial class MainWindow : Window
                     tweakItem.IsApplied = false;
                 }
 
+                RefreshServiceStates();
                 MessageBox.Show(result.Message, "DashTweaks - Rollback Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
@@ -335,6 +450,9 @@ public partial class MainWindow : Window
 
         BtnCreateBackup.IsEnabled = !isBusy;
         BtnRestoreBackup.IsEnabled = !isBusy;
+        BtnDisableServices.IsEnabled = !isBusy;
+        BtnRestoreServices.IsEnabled = !isBusy;
+        BtnRefreshServices.IsEnabled = !isBusy;
 
         foreach (var tweak in Tweaks)
         {
@@ -352,4 +470,6 @@ public partial class MainWindow : Window
         TxtLog.AppendText($"[{timestamp}] {message}\n");
         LogScrollViewer.ScrollToEnd();
     }
+
+    #endregion
 }
