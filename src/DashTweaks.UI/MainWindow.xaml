@@ -95,7 +95,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="DashTweaks" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF"/>
                     <Border Background="#1F3D5C" BorderBrush="#2C5B88" BorderThickness="1" CornerRadius="4" Margin="12,0,0,0" Padding="6,2">
-                        <TextBlock Text="v1.2 • Definitive Gaming Edition" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
+                        <TextBlock Text="v1.3 • Ultimate Gaming Edition" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
                 <TextBlock Text="Optimizador de rendimiento seguro para Windows 10/11 • Cero cajas negras • Backup First" 
@@ -180,8 +180,8 @@
         <!-- Main Navigation Tabs -->
         <TabControl Grid.Row="3" Background="Transparent" BorderThickness="0" Margin="0,0,0,12">
             
-            <!-- PESTAÑA 1: TWEAKS DEL SISTEMA -->
-            <TabItem Header="🚀 Optimizaciones del Sistema (9 Tweaks)">
+            <!-- PESTAÑA 1: TWEAKS DEL SISTEMA (14 TWEAKS) -->
+            <TabItem Header="🚀 Optimizaciones del Sistema (14 Tweaks)">
                 <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -190,7 +190,7 @@
                         </Grid.RowDefinitions>
 
                         <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="Catálogo de Rendimiento Gaming" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
+                            <TextBlock Text="Catálogo de Rendimiento Gaming (14 Tweaks Activos)" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
                             <TextBlock Text="* El primer cambio de la sesión genera un Checkpoint obligatorio." FontSize="11" Foreground="#8A8A93" FontStyle="Italic" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </DockPanel>
 
@@ -215,7 +215,7 @@
                                                             <TextBlock Text="{Binding Category}" FontSize="10" Foreground="#B0B0BA" FontWeight="SemiBold"/>
                                                         </Border>
 
-                                                        <!-- Risk Badge -->
+                                                        <!-- Risk Badge (Safe: Verde, Moderate: Naranja, Aggressive: Rojo) -->
                                                         <Border Background="{Binding RiskBadgeBackground}" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Risk}" FontSize="10" Foreground="#FFFFFF" FontWeight="Bold"/>
                                                         </Border>

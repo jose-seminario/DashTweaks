@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using DashTweaks.Core.Managers;
 using DashTweaks.Core.Models;
+using DashTweaks.Tweaks;
 using DashTweaks.Tweaks.Implementations;
 using DashTweaks.UI.ViewModels;
 
@@ -18,6 +20,9 @@ public partial class MainWindow : Window
     private readonly RollbackManager _rollbackManager = new();
     private readonly ServiceManagerTweak _serviceManager = new();
     private readonly SettingsManager _settingsManager = new();
+
+    // Referencia dedicada al tweak de timer para cierre seguro
+    private readonly TimerResolutionTweak _timerResolutionTweak = new();
 
     private DashTweaksSettings _settings = new();
     private bool _hasSessionCheckpoint = false;
@@ -42,21 +47,64 @@ public partial class MainWindow : Window
         ServicesItemsControl.ItemsSource = Services;
         ProcessesItemsControl.ItemsSource = FilteredProcesses;
 
-        LogMessage("DashTweaks v1.2 (Definitive Edition) inicializado con soporte de Lista Blanca.");
-        LogMessage($"Configuración: {_settings.GameModeWhitelist.Count} exclusiones activas en config.json.");
+        LogMessage("DashTweaks v1.3 (Ultimate Edition) inicializado.");
+        LogMessage("14 Optimizaciones disponibles • Niveles de Riesgo: Safe, Moderate y Aggressive.");
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        // Salvaguarda 1: Cierre seguro del temporizador de 0.5ms al cerrar la ventana
+        if (_timerResolutionTweak.IsActive)
+        {
+            _timerResolutionTweak.Revert();
+        }
+
+        base.OnClosing(e);
     }
 
     private void InitializeTweaks()
     {
+        // 1. Esquema de Energía
         Tweaks.Add(new TweakItemViewModel(new PowerPlanTweak()));
+
+        // 2. Servicios de Juegos (GameDVR)
         Tweaks.Add(new TweakItemViewModel(new GameDvrTweak()));
+
+        // 3. Prioridades Multimedia (MMCSS)
         Tweaks.Add(new TweakItemViewModel(new MmcSsTweak()));
+
+        // 4. Latencia de Red (Algoritmo de Nagle)
         Tweaks.Add(new TweakItemViewModel(new NagleTweak()));
+
+        // 5. Suspensión de Procesos en Segundo Plano
         Tweaks.Add(new TweakItemViewModel(new ProcessSuspensionTweak()));
+
+        // 6. Purga de Memoria Standby
         Tweaks.Add(new TweakItemViewModel(new MemoryPurgeTweak()));
+
+        // 7. Optimización de Red Avanzada & LLMNR
         Tweaks.Add(new TweakItemViewModel(new NetworkAdvancedTweak()));
+
+        // 8. Latencia de Entrada HID (Buffer Ratón y Teclado)
         Tweaks.Add(new TweakItemViewModel(new HidTweak()));
+
+        // 9. Hardware-Accelerated GPU Scheduling (HAGS)
         Tweaks.Add(new TweakItemViewModel(new HagsTweak()));
+
+        // 10. Separación de Grupos de SvcHost (64 MB)
+        Tweaks.Add(new TweakItemViewModel(new SvcHostSplitTweak()));
+
+        // 11. Desactivación de Aceleración de Ratón (Precisión 1:1)
+        Tweaks.Add(new TweakItemViewModel(new MouseAccelerationTweak()));
+
+        // 12. Full Screen Exclusive (FSE) & Prioridad SFIO
+        Tweaks.Add(new TweakItemViewModel(new FseOptimizationTweak()));
+
+        // 13. Resolución del Temporizador a 0.5ms (Riesgo: Aggressive)
+        Tweaks.Add(new TweakItemViewModel(_timerResolutionTweak));
+
+        // 14. EcoQoS en Procesos de Fondo
+        Tweaks.Add(new TweakItemViewModel(new EcoQosTweak()));
     }
 
     private void InitializeServices()
@@ -96,7 +144,6 @@ public partial class MainWindow : Window
                 StringComparer.OrdinalIgnoreCase
             );
 
-            // Obtener procesos con ventana gráfica o aplicaciones conocidas de comunicación/juego
             var processes = Process.GetProcesses()
                 .Where(p =>
                 {
@@ -175,6 +222,23 @@ public partial class MainWindow : Window
 
         if (!item.IsApplied)
         {
+            // DIÁLOGO PREVENTIVO EXTRA: Nivel de Riesgo Aggressive (Timer Resolution)
+            if (item.Risk == RiskLevel.Aggressive)
+            {
+                var confirmAggressive = MessageBox.Show(
+                    "Esta optimización incrementa la frecuencia del reloj del sistema a 0.5ms para máxima responsividad competitiva, pero aumentará el consumo de batería y energía.\n\n¿Deseas activarla?",
+                    "DashTweaks - Advertencia de Riesgo Agresivo",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning
+                );
+
+                if (confirmAggressive != MessageBoxResult.Yes)
+                {
+                    LogMessage("[CANCELADO] El usuario canceló la optimización de nivel Agresivo.");
+                    return;
+                }
+            }
+
             // DIÁLOGO PREVENTIVO: Suspensión de Procesos
             if (item.Tweak is ProcessSuspensionTweak)
             {
@@ -210,7 +274,6 @@ public partial class MainWindow : Window
                 {
                     item.IsApplied = true;
 
-                    // Reportar en consola las aplicaciones saltadas por Lista Blanca
                     foreach (var skipped in procTweak.SkippedProcesses)
                     {
                         LogMessage($"[LISTA BLANCA] Saltando {skipped} (en Lista Blanca).");
@@ -241,6 +304,19 @@ public partial class MainWindow : Window
                 {
                     LogMessage($"[AVISO] {memTweak.StatusMessage}");
                     MessageBox.Show(memTweak.StatusMessage, "DashTweaks - Purga Omitida", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            else if (item.Tweak is EcoQosTweak ecoTweak)
+            {
+                if (success)
+                {
+                    item.IsApplied = true;
+                    LogMessage($"[ÉXITO] EcoQoS activado en {ecoTweak.ThrottledCount} procesos de fondo.");
+                    MessageBox.Show($"EcoQoS aplicado correctamente en {ecoTweak.ThrottledCount} procesos en segundo plano.", "DashTweaks - EcoQoS", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    LogMessage($"[AVISO] No se detectaron procesos de usuario en segundo plano para limitar.");
                 }
             }
             else
@@ -382,7 +458,6 @@ public partial class MainWindow : Window
 
     private void BtnSaveWhitelist_Click(object sender, RoutedEventArgs e)
     {
-        // Extraer nombres únicos de procesos que tienen la casilla activada
         var selectedNames = AllProcesses
             .Where(p => p.IsWhitelisted)
             .Select(p => p.ExeName)

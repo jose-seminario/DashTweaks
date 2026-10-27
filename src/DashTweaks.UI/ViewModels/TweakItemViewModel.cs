@@ -52,10 +52,17 @@ public class TweakItemViewModel : INotifyPropertyChanged
     public bool CanExecute => !IsBusy;
 
     public string ActionButtonText => IsApplied ? "REVERTIR" : "APLICAR";
-    public string ActionButtonBackground => IsApplied ? "#93261E" : "#0066B8";
+    public string ActionButtonBackground => IsApplied ? "#93261E" : (Risk == RiskLevel.Aggressive ? "#B0232A" : "#0066B8");
     public string StatusBadgeText => IsApplied ? "APLICADO" : "PENDIENTE";
     public string StatusBadgeBackground => IsApplied ? "#107C10" : "#2E2E33";
-    public string RiskBadgeBackground => Risk == RiskLevel.Safe ? "#107C10" : "#D83B01";
+
+    public string RiskBadgeBackground => Risk switch
+    {
+        RiskLevel.Safe => "#107C10",
+        RiskLevel.Moderate => "#D83B01",
+        RiskLevel.Aggressive => "#D13438",
+        _ => "#555555"
+    };
 
     public TweakItemViewModel(ITweak tweak)
     {
