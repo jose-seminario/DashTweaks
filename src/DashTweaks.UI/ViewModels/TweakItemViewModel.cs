@@ -67,7 +67,14 @@ public class TweakItemViewModel : INotifyPropertyChanged
     public TweakItemViewModel(ITweak tweak)
     {
         Tweak = tweak;
-        _isApplied = tweak.CheckIsApplied();
+        try
+        {
+            _isApplied = tweak.CheckIsApplied();
+        }
+        catch
+        {
+            _isApplied = false;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

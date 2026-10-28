@@ -1,4 +1,4 @@
-<Window x:Class="DashTweaks.UI.MainWindow"
+﻿<Window x:Class="DashTweaks.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="DashTweaks - Optimizador Seguro para Windows Gaming" 
@@ -886,51 +886,44 @@
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}"
                                         CornerRadius="8">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- Header Row -->
-                                        <ToggleButton Grid.Row="0"
+                                    <DockPanel>
+                                        <ToggleButton DockPanel.Dock="Top"
                                                       IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
                                                       Cursor="Hand"
-                                                      Padding="14,8">
+                                                      Padding="14,8"
+                                                      HorizontalContentAlignment="Stretch">
                                             <ToggleButton.Template>
                                                 <ControlTemplate TargetType="ToggleButton">
-                                                    <Border Background="Transparent" Padding="{TemplateBinding Padding}">
-                                                        <DockPanel LastChildFill="True">
-                                                            <TextBlock x:Name="Arrow" Text="▶" Foreground="#7A7A88" FontSize="10" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
-                                                        </DockPanel>
+                                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
                                                     </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsChecked" Value="True">
-                                                            <Setter TargetName="Arrow" Property="Text" Value="▼"/>
-                                                            <Setter TargetName="Arrow" Property="Foreground" Value="#60CDFF"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
                                                 </ControlTemplate>
                                             </ToggleButton.Template>
-                                            <ContentPresenter ContentSource="Header"/>
+                                            <DockPanel LastChildFill="True">
+                                                <TextBlock x:Name="ExpanderArrow" Text="&#x25B6;" Foreground="#7A7A88" FontSize="10" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                                            </DockPanel>
                                         </ToggleButton>
 
                                         <!-- Expandable Content -->
-                                        <Border Grid.Row="1" x:Name="ExpandSite" 
+                                        <Border x:Name="ExpandSite" 
                                                 Visibility="Collapsed" 
                                                 Background="#111215" 
                                                 BorderBrush="#1F2026" 
                                                 BorderThickness="0,1,0,0" 
-                                                CornerRadius="0,0,8,8"
+                                                CornerRadius="0,0,8,8" 
                                                 Padding="12,10">
-                                            <ContentPresenter/>
+                                            <ContentPresenter ContentSource="Content"/>
                                         </Border>
-                                    </Grid>
+                                    </DockPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsExpanded" Value="True">
                                         <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="ExpanderArrow" Property="Text" Value="&#x25BC;"/>
+                                        <Setter TargetName="ExpanderArrow" Property="Foreground" Value="#60CDFF"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>

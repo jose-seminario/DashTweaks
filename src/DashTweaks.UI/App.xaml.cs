@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using DashTweaks.Core.Managers;
 using Hardcodet.Wpf.TaskbarNotification;
 
@@ -20,17 +21,58 @@ public partial class App : Application
 
     public static App Instance => (App)Current;
 
+    public App()
+    {
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+    }
+
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        MessageBox.Show(
+            $"Excepción no controlada en la interfaz:\n\n{e.Exception}",
+            "DashTweaks - Error No Controlado",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+        e.Handled = true;
+    }
+
+    private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            MessageBox.Show(
+                $"Error crítico fatal en el dominio:\n\n{ex}",
+                "DashTweaks - Error Fatal",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // 1. Iniciar la ventana principal
-        var mainWindow = new MainWindow();
-        MainWindow = mainWindow;
-        mainWindow.Show();
+        try
+        {
+            // 1. Iniciar la ventana principal
+            var mainWindow = new MainWindow();
+            MainWindow = mainWindow;
+            mainWindow.Show();
 
-        // 2. Configurar el icono en la bandeja del sistema (System Tray)
-        InitializeTaskbarIcon();
+            // 2. Configurar el icono en la bandeja del sistema (System Tray)
+            InitializeTaskbarIcon();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error crítico al iniciar DashTweaks:\n\n{ex}",
+                "DashTweaks - Error de Arranque",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
 
         // 3. Salvaguarda: Liberar Timer Resolution al salir
         AppDomain.CurrentDomain.ProcessExit += (s, ev) =>
@@ -45,33 +87,40 @@ public partial class App : Application
 
     private void InitializeTaskbarIcon()
     {
-        _taskbarIcon = new TaskbarIcon
+        try
         {
-            ToolTipText = "DashTweaks - Optimizador Gaming",
-            Icon = SystemIcons.Shield // Icono seguro por defecto de Windows
-        };
+            _taskbarIcon = new TaskbarIcon
+            {
+                ToolTipText = "DashTweaks - Optimizador Gaming",
+                Icon = SystemIcons.Shield // Icono seguro por defecto de Windows
+            };
 
-        // Doble clic: Abrir ventana principal
-        _taskbarIcon.TrayMouseDoubleClick += (s, e) => ShowMainWindow();
+            // Doble clic: Abrir ventana principal
+            _taskbarIcon.TrayMouseDoubleClick += (s, e) => ShowMainWindow();
 
-        // Menú contextual en el icono de la bandeja
-        var contextMenu = new ContextMenu();
+            // Menú contextual en el icono de la bandeja
+            var contextMenu = new ContextMenu();
 
-        var itemOpen = new MenuItem { Header = "🖥️ Abrir DashTweaks" };
-        itemOpen.Click += (s, e) => ShowMainWindow();
-        contextMenu.Items.Add(itemOpen);
+            var itemOpen = new MenuItem { Header = "🖥️ Abrir DashTweaks" };
+            itemOpen.Click += (s, e) => ShowMainWindow();
+            contextMenu.Items.Add(itemOpen);
 
-        var itemToggleMode = new MenuItem { Header = "🟢 Activar/Desactivar Auto-Game Mode" };
-        itemToggleMode.Click += (s, e) => ToggleAutoGameMode();
-        contextMenu.Items.Add(itemToggleMode);
+            var itemToggleMode = new MenuItem { Header = "🟢 Activar/Desactivar Auto-Game Mode" };
+            itemToggleMode.Click += (s, e) => ToggleAutoGameMode();
+            contextMenu.Items.Add(itemToggleMode);
 
-        contextMenu.Items.Add(new Separator());
+            contextMenu.Items.Add(new Separator());
 
-        var itemExit = new MenuItem { Header = "❌ Salir" };
-        itemExit.Click += (s, e) => ExitApplication();
-        contextMenu.Items.Add(itemExit);
+            var itemExit = new MenuItem { Header = "❌ Salir" };
+            itemExit.Click += (s, e) => ExitApplication();
+            contextMenu.Items.Add(itemExit);
 
-        _taskbarIcon.ContextMenu = contextMenu;
+            _taskbarIcon.ContextMenu = contextMenu;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AVISO] No se pudo inicializar TaskbarIcon: {ex.Message}");
+        }
     }
 
     public void ShowMainWindow()
