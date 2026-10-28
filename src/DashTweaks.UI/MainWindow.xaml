@@ -5,20 +5,20 @@
         Height="910" Width="1040"
         MinHeight="760" MinWidth="940"
         WindowStartupLocation="CenterScreen"
-        Background="#141416"
+        Background="#121316"
         Foreground="#EDEDED"
         FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif">
 
     <Window.Resources>
-        <!-- Estilo Botón Genérico -->
+        <!-- Estilo Botón Genérico Más Redondeado y Elegante -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="12.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Padding" Value="16,9"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="BorderBrush" Value="#383842"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -26,12 +26,12 @@
                                 Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="6">
+                                CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Opacity" Value="0.88"/>
+                                <Setter TargetName="border" Property="Opacity" Value="0.90"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Opacity" Value="0.75"/>
@@ -51,11 +51,11 @@
             <Setter Property="FontSize" Value="12.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="#9E9EA6"/>
-            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Padding" Value="16,10"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="tabBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Margin="0,0,8,0" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="tabBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Margin="0,0,10,0" Padding="{TemplateBinding Padding}">
                             <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -82,10 +82,10 @@
             <RowDefinition Height="Auto"/> <!-- Row 2: Auto-Game Mode Quick Toggle Card -->
             <RowDefinition Height="Auto"/> <!-- Row 3: Status / Progress Alert Bar -->
             <RowDefinition Height="*"/>    <!-- Row 4: Main Tabs -->
-            <RowDefinition Height="140"/>  <!-- Row 5: Console Activity Log -->
+            <RowDefinition Height="Auto"/> <!-- Row 5: Console Activity Log (Expander) -->
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- Header Principal -->
         <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -95,12 +95,12 @@
             <StackPanel Grid.Column="0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="DashTweaks" FontSize="24" FontWeight="Bold" Foreground="#FFFFFF"/>
-                    <Border Background="#1F3D5C" BorderBrush="#2C5B88" BorderThickness="1" CornerRadius="4" Margin="12,0,0,0" Padding="6,2">
+                    <Border Background="#1C2E42" BorderBrush="#2A4A6D" BorderThickness="1" CornerRadius="6" Margin="12,0,0,0" Padding="8,3">
                         <TextBlock Text="v2.3 • Ultimate Gaming Suite" FontSize="11" Foreground="#60CDFF" FontWeight="SemiBold"/>
                     </Border>
                 </StackPanel>
                 <TextBlock Text="Optimizador de rendimiento seguro para Windows 10/11 • Cero cajas negras • Backup First" 
-                           FontSize="12" Foreground="#8F8F96" Margin="0,3,0,0"/>
+                           FontSize="12" Foreground="#8F8F96" Margin="0,4,0,0"/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -110,14 +110,14 @@
                         Background="#242630" 
                         BorderBrush="#383C4D"
                         FontSize="11.5"
-                        Padding="12,6"
+                        Padding="14,7"
                         Margin="0,0,10,0"
                         Click="BtnCheckUpdates_Click"/>
 
-                <Border Background="#1D281E" BorderBrush="#2E5230" BorderThickness="1" CornerRadius="6" Padding="10,6" VerticalAlignment="Center">
+                <Border Background="#1A281C" BorderBrush="#274A2A" BorderThickness="1" CornerRadius="8" Padding="12,7" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🛡️" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Mitigaciones Seguras (HVCI/VBS protegidas)" FontSize="11" Foreground="#6CCB76" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="Mitigaciones Seguras (HVCI/VBS protegidas)" FontSize="11.5" Foreground="#6CCB76" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -132,52 +132,52 @@
             </Grid.ColumnDefinitions>
 
             <!-- Card Crear Backup Manual -->
-            <Border Grid.Column="0" Background="#1C1C20" BorderBrush="#2C2C33" BorderThickness="1" CornerRadius="8" Padding="14">
+            <Border Grid.Column="0" Background="#18191E" BorderBrush="#2A2A33" BorderThickness="1" CornerRadius="10" Padding="18,14">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <TextBlock Text="Punto de Control Completo" FontSize="13" Foreground="#60CDFF" FontWeight="SemiBold"/>
+                    <StackPanel Grid.Column="0" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <TextBlock Text="Punto de Control Completo" FontSize="13.5" Foreground="#60CDFF" FontWeight="SemiBold"/>
                         <TextBlock Text="Crea un punto de restauración, vuelca ramas del registro y esquema de energía." 
-                                   FontSize="11" Foreground="#858590" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                   FontSize="11.5" Foreground="#858590" Margin="0,3,0,0" TextWrapping="Wrap"/>
                     </StackPanel>
                     <Button Grid.Column="1" 
                             x:Name="BtnCreateBackup" 
-                            Content="CREAR BACKUP (Checkpoint)" 
+                            Content="CREAR BACKUP" 
                             Style="{StaticResource ActionButtonStyle}" 
                             Background="#0066B8" 
-                            Padding="14,10"
+                            Padding="16,10"
                             Click="BtnCreateBackup_Click"/>
                 </Grid>
             </Border>
 
             <!-- Card Restaurar Manual -->
-            <Border Grid.Column="2" Background="#1C1C20" BorderBrush="#2C2C33" BorderThickness="1" CornerRadius="8" Padding="14">
+            <Border Grid.Column="2" Background="#18191E" BorderBrush="#2A2A33" BorderThickness="1" CornerRadius="10" Padding="18,14">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-                        <TextBlock Text="Restauración Total" FontSize="13" Foreground="#F59E0B" FontWeight="SemiBold"/>
+                    <StackPanel Grid.Column="0" Margin="0,0,14,0" VerticalAlignment="Center">
+                        <TextBlock Text="Restauración Total" FontSize="13.5" Foreground="#F59E0B" FontWeight="SemiBold"/>
                         <TextBlock Text="Importa el registro y reactiva el plan de energía del checkpoint previo." 
-                                   FontSize="11" Foreground="#858590" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                   FontSize="11.5" Foreground="#858590" Margin="0,3,0,0" TextWrapping="Wrap"/>
                     </StackPanel>
                     <Button Grid.Column="1" 
                             x:Name="BtnRestoreBackup" 
                             Content="RESTAURAR (RESET)" 
                             Style="{StaticResource ActionButtonStyle}" 
                             Background="#8A3414" 
-                            Padding="14,10"
+                            Padding="16,10"
                             Click="BtnRestoreBackup_Click"/>
                 </Grid>
             </Border>
         </Grid>
 
         <!-- Auto-Game Mode Quick Toggle Card -->
-        <Border Grid.Row="2" Background="#151C28" BorderBrush="#22334D" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,12">
+        <Border Grid.Row="2" Background="#151A24" BorderBrush="#223046" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
             <DockPanel>
                 <CheckBox x:Name="ChkAutoGameMode" 
                           Content="🟢 Activar Game Mode Automáticamente al abrir juegos" 
@@ -195,73 +195,121 @@
         </Border>
 
         <!-- Status / Progress Alert Bar (Visible during operations) -->
-        <Border Grid.Row="3" x:Name="BusyBanner" Background="#232014" BorderBrush="#594611" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12" Visibility="Collapsed">
+        <Border Grid.Row="3" x:Name="BusyBanner" Background="#232014" BorderBrush="#594611" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12" Visibility="Collapsed">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="⏳" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" x:Name="TxtBusyStatus" Text="Procesando operación en segundo plano..." FontSize="12" Foreground="#F0CD68" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <ProgressBar Grid.Column="2" IsIndeterminate="True" Width="120" Height="6" Background="#383017" Foreground="#F59E0B" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="⏳" FontSize="14" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" x:Name="TxtBusyStatus" Text="Procesando operación en segundo plano..." FontSize="12.5" Foreground="#F0CD68" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <ProgressBar Grid.Column="2" IsIndeterminate="True" Width="130" Height="6" Background="#383017" Foreground="#F59E0B" BorderThickness="0" VerticalAlignment="Center"/>
             </Grid>
         </Border>
 
         <!-- Main Navigation Tabs -->
-        <TabControl Grid.Row="4" Background="Transparent" BorderThickness="0" Margin="0,0,0,12">
+        <TabControl Grid.Row="4" Background="Transparent" BorderThickness="0" Margin="0,0,0,10">
             
             <!-- PESTAÑA 1: TWEAKS DEL SISTEMA (19 TWEAKS) -->
             <TabItem Header="🚀 Optimizaciones (19)">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/> <!-- Dashboard Header -->
-                            <RowDefinition Height="Auto"/> <!-- Live Metrics & Recommended Profile Card -->
+                            <RowDefinition Height="Auto"/> <!-- Header + Search -->
+                            <RowDefinition Height="Auto"/> <!-- Dashboard Métricas CPU/RAM + Perfil -->
                             <RowDefinition Height="*"/>    <!-- Tweaks Scroll List -->
                         </Grid.RowDefinitions>
 
-                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="Catálogo de Rendimiento Gaming (19 Tweaks Activos)" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" DockPanel.Dock="Left"/>
-                            <TextBlock Text="* El primer cambio de la sesión genera un Checkpoint obligatorio." FontSize="11" Foreground="#8A8A93" FontStyle="Italic" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <!-- Header Superior y Buscador Minimalista -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
+                                <TextBlock Text="Catálogo de Rendimiento Gaming" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <Border Background="#1F2128" BorderBrush="#2C303D" BorderThickness="1" CornerRadius="10" Padding="8,4" Margin="12,0,0,0"
+                                        ToolTip="El primer cambio crea un punto de restauración automático para que siempre puedas revertir con seguridad."
+                                        Cursor="Help">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🛡️" FontSize="10.5" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <TextBlock Text="Protección con Checkpoint activa" FontSize="11" Foreground="#8F9BB3" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Buscador Minimalista -->
+                            <Border DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                                    Background="#141519" BorderBrush="#2A2B33" BorderThickness="1" CornerRadius="8" Padding="10,6" MinWidth="240">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🔍" FontSize="11" Foreground="#7A7A88" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <Grid Grid.Column="1">
+                                        <TextBox x:Name="TxtSearchTweaks" 
+                                                 Background="Transparent" 
+                                                 Foreground="#FFFFFF" 
+                                                 BorderThickness="0" 
+                                                 FontSize="12" 
+                                                 VerticalAlignment="Center"
+                                                 CaretBrush="#FFFFFF"
+                                                 TextChanged="TxtSearchTweaks_TextChanged"/>
+                                        <TextBlock x:Name="TxtSearchPlaceholder" 
+                                                   Text="Buscar optimización..." 
+                                                   FontSize="12" 
+                                                   Foreground="#686874" 
+                                                   IsHitTestVisible="False" 
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
                         </DockPanel>
 
                         <!-- Dashboard de Métricas en Tiempo Real y Perfil Recomendado -->
-                        <Border Grid.Row="1" Background="#1B1C22" BorderBrush="#2C2E3A" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,12">
+                        <Border Grid.Row="1" Background="#1A1B22" BorderBrush="#282935" BorderThickness="1" CornerRadius="10" Padding="18,14" Margin="0,0,0,14">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="14"/>
-                                    <ColumnDefinition Width="1.2*"/>
-                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="1.3*"/>
+                                    <ColumnDefinition Width="16"/>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="16"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Indicador CPU -->
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                    <DockPanel Margin="0,0,0,4">
-                                        <TextBlock Text="🖥️ Uso de CPU" FontSize="12" Foreground="#A0A0AA" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                                        <TextBlock x:Name="TxtCpuUsage" Text="0.0 %" FontSize="12" Foreground="#60CDFF" FontWeight="Bold" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
-                                    </DockPanel>
-                                    <ProgressBar x:Name="PbCpuUsage" Height="8" Minimum="0" Maximum="100" Value="0" Background="#262730" Foreground="#0078D4" BorderThickness="0"/>
-                                </StackPanel>
+                                <!-- Indicador CPU: Texto izquierda, barra derecha -->
+                                <Grid Grid.Column="0" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="🖥️ CPU" FontSize="11" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtCpuUsage" Text="0.0 %" FontSize="13" Foreground="#60CDFF" FontWeight="Bold" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <ProgressBar Grid.Column="1" x:Name="PbCpuUsage" Height="7" Minimum="0" Maximum="100" Value="0" 
+                                                 Background="#252630" Foreground="#0078D4" BorderThickness="0" VerticalAlignment="Center"/>
+                                </Grid>
 
-                                <!-- Indicador RAM -->
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <DockPanel Margin="0,0,0,4">
-                                        <TextBlock Text="🧠 Uso de RAM" FontSize="12" Foreground="#A0A0AA" FontWeight="SemiBold" DockPanel.Dock="Left"/>
-                                        <TextBlock x:Name="TxtRamUsage" Text="0 % (0 MB / 0 MB)" FontSize="12" Foreground="#6CCB76" FontWeight="Bold" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
-                                    </DockPanel>
-                                    <ProgressBar x:Name="PbRamUsage" Height="8" Minimum="0" Maximum="100" Value="0" Background="#262730" Foreground="#107C10" BorderThickness="0"/>
-                                </StackPanel>
+                                <!-- Indicador RAM: Texto izquierda, barra derecha -->
+                                <Grid Grid.Column="2" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="🧠 RAM" FontSize="11" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtRamUsage" Text="0 % (0 MB / 0 MB)" FontSize="12.5" Foreground="#6CCB76" FontWeight="Bold" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <ProgressBar Grid.Column="1" x:Name="PbRamUsage" Height="7" Minimum="0" Maximum="100" Value="0" 
+                                                 Background="#252630" Foreground="#107C10" BorderThickness="0" VerticalAlignment="Center"/>
+                                </Grid>
 
                                 <!-- Indicador Estado de Red (NIC Tuning) -->
-                                <Border Grid.Column="4" Background="#15161B" BorderBrush="#2C2E3A" BorderThickness="1" CornerRadius="6" Padding="10,6" VerticalAlignment="Center">
+                                <Border Grid.Column="4" Background="#14151B" BorderBrush="#252632" BorderThickness="1" CornerRadius="8" Padding="12,7" VerticalAlignment="Center">
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🌐 Latencia de Red" FontSize="11" Foreground="#A0A0AA" FontWeight="SemiBold"/>
-                                        <TextBlock x:Name="TxtNetworkStatus" Text="Estándar (Default)" FontSize="11.5" Foreground="#A0A0AA" FontWeight="Bold" Margin="0,2,0,0"/>
+                                        <TextBlock Text="🌐 Latencia de Red" FontSize="10.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtNetworkStatus" Text="Estándar (Default)" FontSize="11.5" Foreground="#8E8E98" FontWeight="Bold" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
 
@@ -271,56 +319,59 @@
                                         Content="⚡ APLICAR PERFIL RECOMENDADO" 
                                         Style="{StaticResource ActionButtonStyle}" 
                                         Background="#107C10" 
-                                        Padding="14,10"
+                                        Padding="16,10"
                                         VerticalAlignment="Center"
                                         Click="BtnApplyRecommendedProfile_Click"/>
                             </Grid>
                         </Border>
 
+                        <!-- Lista de Tweaks con Tarjetas Amplias y Textos Humanos -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <ItemsControl x:Name="TweaksItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                                        <Border Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="20,16" Margin="0,0,0,12">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <!-- Tweak Info -->
-                                                <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="Bold" Foreground="#F3F3F3" VerticalAlignment="Center"/>
+                                                <!-- Info del Tweak -->
+                                                <StackPanel Grid.Column="0" Margin="0,0,18,0" VerticalAlignment="Center">
+                                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                        <TextBlock Text="{Binding Name}" FontSize="14.5" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,2"/>
                                                         
-                                                        <Border Background="#2B2B33" CornerRadius="4" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Category}" FontSize="10" Foreground="#B0B0BA" FontWeight="SemiBold"/>
+                                                        <Border Background="#25262E" BorderBrush="#32333E" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,0,8,2" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Category}" FontSize="10.5" Foreground="#9DA3B4" FontWeight="SemiBold"/>
                                                         </Border>
 
-                                                        <Border Background="{Binding RiskBadgeBackground}" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Risk}" FontSize="10" Foreground="#FFFFFF" FontWeight="Bold"/>
+                                                        <Border Background="{Binding RiskBadgeBackground}" CornerRadius="6" Padding="8,3" Margin="0,0,8,2" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Risk}" FontSize="10.5" Foreground="#FFFFFF" FontWeight="Bold"/>
                                                         </Border>
 
-                                                        <Border Background="{Binding StatusBadgeBackground}" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding StatusBadgeText}" FontSize="10" Foreground="#FFFFFF" FontWeight="SemiBold"/>
+                                                        <Border Background="{Binding StatusBadgeBackground}" CornerRadius="6" Padding="8,3" Margin="0,0,8,2" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding StatusBadgeText}" FontSize="10.5" Foreground="#FFFFFF" FontWeight="SemiBold"/>
                                                         </Border>
 
-                                                        <Border Background="#45270A" BorderBrush="#78440E" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                        <Border Background="#3D220B" BorderBrush="#6B3C14" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,0,0,2" VerticalAlignment="Center"
                                                                 Visibility="{Binding RequiresRestart, Converter={StaticResource BoolToVisConverter}}">
-                                                            <TextBlock Text="⚠️ Requiere Reinicio" FontSize="10" Foreground="#F59E0B" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="⚠️ Requiere Reinicio" FontSize="10.5" Foreground="#FBBF24" FontWeight="SemiBold"/>
                                                         </Border>
-                                                    </StackPanel>
+                                                    </WrapPanel>
 
-                                                    <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#9C9CA6" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{Binding Description}" FontSize="12.5" Foreground="#9E9EA8" TextWrapping="Wrap" LineHeight="19" Margin="0,4,0,0"/>
                                                 </StackPanel>
 
-                                                <!-- Action Button -->
+                                                <!-- Botón Acción Redondeado y con Margen -->
                                                 <Button Grid.Column="1" 
                                                         Content="{Binding ActionButtonText}" 
                                                         Background="{Binding ActionButtonBackground}" 
                                                         IsEnabled="{Binding CanExecute}"
                                                         Style="{StaticResource ActionButtonStyle}" 
-                                                        MinWidth="110"
+                                                        MinWidth="120"
+                                                        Height="38"
+                                                        Margin="14,0,0,0"
                                                         VerticalAlignment="Center"
                                                         Click="TweakActionButton_Click"/>
                                             </Grid>
@@ -335,7 +386,7 @@
 
             <!-- PESTAÑA 2: DIAGNÓSTICO DE RED PARA GAMING -->
             <TabItem Header="🩺 Diagnóstico de Red">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <!-- Header de Diagnóstico -->
@@ -370,44 +421,44 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Tarjeta 1: Packet Loss -->
-                                <Border Grid.Column="0" x:Name="CardPacketLoss" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <Border Grid.Column="0" x:Name="CardPacketLoss" Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14">
                                     <StackPanel>
                                         <TextBlock Text="Pérdida de Paquetes" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
                                         <TextBlock x:Name="TxtPacketLossVal" Text="-- %" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
-                                        <Border x:Name="BadgePacketLoss" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <Border x:Name="BadgePacketLoss" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="6" Padding="6,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="TxtPacketLossStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
 
                                 <!-- Tarjeta 2: Jitter -->
-                                <Border Grid.Column="2" x:Name="CardJitter" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <Border Grid.Column="2" x:Name="CardJitter" Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14">
                                     <StackPanel>
                                         <TextBlock Text="Jitter (Fluctuación)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
                                         <TextBlock x:Name="TxtJitterVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
-                                        <Border x:Name="BadgeJitter" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <Border x:Name="BadgeJitter" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="6" Padding="6,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="TxtJitterStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
 
                                 <!-- Tarjeta 3: Bufferbloat -->
-                                <Border Grid.Column="4" x:Name="CardBufferbloat" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <Border Grid.Column="4" x:Name="CardBufferbloat" Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14">
                                     <StackPanel>
                                         <TextBlock Text="Bufferbloat (+ms bajo carga)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
                                         <TextBlock x:Name="TxtBufferbloatVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#F3F3F3" Margin="0,6,0,6"/>
-                                        <Border x:Name="BadgeBufferbloat" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <Border x:Name="BadgeBufferbloat" Background="#24242A" BorderBrush="#383842" BorderThickness="1" CornerRadius="6" Padding="6,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="TxtBufferbloatStatus" Text="Sin testear" FontSize="10.5" Foreground="#A0A0AA" FontWeight="SemiBold"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
 
                                 <!-- Tarjeta 4: Latencia Base -->
-                                <Border Grid.Column="6" x:Name="CardLatency" Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <Border Grid.Column="6" x:Name="CardLatency" Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14">
                                     <StackPanel>
                                         <TextBlock Text="Latencia Base (Ping)" FontSize="11.5" Foreground="#8E8E98" FontWeight="SemiBold"/>
                                         <TextBlock x:Name="TxtLatencyVal" Text="-- ms" FontSize="20" FontWeight="Bold" Foreground="#60CDFF" Margin="0,6,0,6"/>
-                                        <Border x:Name="BadgeLatency" Background="#1E2B3A" BorderBrush="#2B4666" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <Border x:Name="BadgeLatency" Background="#1E2B3A" BorderBrush="#2B4666" BorderThickness="1" CornerRadius="6" Padding="6,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="TxtLatencyStatus" Text="Sin testear" FontSize="10.5" Foreground="#60CDFF" FontWeight="SemiBold"/>
                                         </Border>
                                     </StackPanel>
@@ -415,26 +466,26 @@
                             </Grid>
 
                             <!-- Panel de Recomendaciones Inteligentes -->
-                            <Border Background="#16171C" BorderBrush="#2A2C38" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <Border Background="#16171C" BorderBrush="#2A2C38" BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="💡" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="Diagnóstico y Recomendaciones Personalizadas" FontSize="14" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
                                     </StackPanel>
 
-                                    <Border Background="#1B1C22" BorderBrush="#262730" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,12">
+                                    <Border Background="#1B1C22" BorderBrush="#262730" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                                         <TextBlock x:Name="TxtRecommendations" 
                                                    Text="Presiona 'EJECUTAR DIAGNÓSTICO COMPLETO' para analizar el estado de tu red y obtener recomendaciones dirigidas." 
                                                    FontSize="12.5" Foreground="#C0C0C8" TextWrapping="Wrap" LineHeight="20"/>
                                     </Border>
 
                                     <!-- Acción Recomendada: Limpiar Ruta de Red -->
-                                    <Border Background="#1D2028" BorderBrush="#2C354A" BorderThickness="1" CornerRadius="6" Padding="12">
+                                    <Border Background="#1D2028" BorderBrush="#2C354A" BorderThickness="1" CornerRadius="8" Padding="14">
                                         <DockPanel>
                                             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                                                 <TextBlock Text="🛠️ Acción Recomendada: Limpiar y Restablecer Ruta de Red" FontSize="13" FontWeight="Bold" Foreground="#60CDFF"/>
                                                 <TextBlock Text="Limpia la caché de resolución DNS de Windows y renueva las rutas de paquetes para resolver micro-cortes." 
-                                                           FontSize="11.5" Foreground="#8E9CB3" Margin="0,2,0,0"/>
+                                                           FontSize="11.5" Foreground="#8E9CB3" Margin="0,3,0,0"/>
                                             </StackPanel>
 
                                             <Button x:Name="BtnFlushDnsAndReset" 
@@ -456,7 +507,7 @@
 
             <!-- PESTAÑA 3: GESTOR DE SERVICIOS -->
             <TabItem Header="⚙️ Servicios">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -474,7 +525,7 @@
                             <ItemsControl x:Name="ServicesItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                                        <Border Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,12">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -493,7 +544,7 @@
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="14,0,0,0">
-                                                    <Border Background="{Binding StatusBackground}" CornerRadius="4" Padding="8,3" HorizontalAlignment="Right">
+                                                    <Border Background="{Binding StatusBackground}" CornerRadius="6" Padding="8,3" HorizontalAlignment="Right">
                                                         <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="11" FontWeight="SemiBold"/>
                                                     </Border>
                                                     <TextBlock Text="{Binding StartTypeText}" Foreground="{Binding StartTypeColor}" FontSize="11" Margin="0,4,0,0" HorizontalAlignment="Right"/>
@@ -505,7 +556,7 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <Border Grid.Row="2" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,12,0,0">
+                        <Border Grid.Row="2" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,12,0,0">
                             <DockPanel>
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Button x:Name="BtnDisableServices" 
@@ -536,9 +587,9 @@
                 </Border>
             </TabItem>
 
-            <!-- PESTAÑA 3: GAME MODE (EXCLUSIONES) -->
+            <!-- PESTAÑA 4: GAME MODE (EXCLUSIONES) -->
             <TabItem Header="🎮 Exclusiones">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -552,7 +603,7 @@
                                        FontSize="12" Foreground="#8F8F96" Margin="0,3,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
 
-                        <Border Grid.Row="1" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                        <Border Grid.Row="1" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -576,19 +627,19 @@
                                          TextChanged="TxtSearchProcess_TextChanged"/>
 
                                 <Button Grid.Column="2" 
-                                        x:Name="BtnRefreshProcesses" 
-                                        Content="🔄 ACTUALIZAR PROCESOS" 
-                                        Style="{StaticResource ActionButtonStyle}" 
-                                        Background="#2B2B32" 
-                                        Margin="0,0,10,0"
-                                        Click="BtnRefreshProcesses_Click"/>
+                                         x:Name="BtnRefreshProcesses" 
+                                         Content="🔄 ACTUALIZAR PROCESOS" 
+                                         Style="{StaticResource ActionButtonStyle}" 
+                                         Background="#2B2B32" 
+                                         Margin="0,0,10,0"
+                                         Click="BtnRefreshProcesses_Click"/>
 
                                 <Button Grid.Column="3" 
-                                        x:Name="BtnSaveWhitelist" 
-                                        Content="💾 GUARDAR LISTA BLANCA" 
-                                        Style="{StaticResource ActionButtonStyle}" 
-                                        Background="#0066B8" 
-                                        Click="BtnSaveWhitelist_Click"/>
+                                         x:Name="BtnSaveWhitelist" 
+                                         Content="💾 GUARDAR LISTA BLANCA" 
+                                         Style="{StaticResource ActionButtonStyle}" 
+                                         Background="#0066B8" 
+                                         Click="BtnSaveWhitelist_Click"/>
                             </Grid>
                         </Border>
 
@@ -596,7 +647,7 @@
                             <ItemsControl x:Name="ProcessesItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                                        <Border Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,8">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -616,7 +667,7 @@
                                                     <TextBlock Text="{Binding MainWindowTitle}" FontSize="11.5" Foreground="#95959E" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                                                 </StackPanel>
 
-                                                <Border Grid.Column="2" Background="{Binding StatusBadgeBackground}" BorderBrush="{Binding StatusBadgeBorder}" BorderThickness="1" CornerRadius="4" Padding="8,4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                <Border Grid.Column="2" Background="{Binding StatusBadgeBackground}" BorderBrush="{Binding StatusBadgeBorder}" BorderThickness="1" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" HorizontalAlignment="Right">
                                                     <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" Foreground="#FFFFFF" FontWeight="SemiBold"/>
                                                 </Border>
                                             </Grid>
@@ -629,9 +680,9 @@
                 </Border>
             </TabItem>
 
-            <!-- PESTAÑA 4: BLOATWARE (APPS UWP) -->
+            <!-- PESTAÑA 5: BLOATWARE (APPS UWP) -->
             <TabItem Header="🧹 Bloatware">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -644,7 +695,7 @@
                             <TextBlock Text="Elimina paquetes secundarios UWP para liberar espacio, reducir procesos de fondo y eliminar telemetría innecesaria. Totalmente reversible." 
                                        FontSize="12" Foreground="#8F8F96" Margin="0,3,0,8" TextWrapping="Wrap"/>
 
-                            <Border Background="#1B281E" BorderBrush="#2B5230" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                            <Border Background="#1B281E" BorderBrush="#2B5230" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🛡️" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Reversibilidad Garantizada: Las aplicaciones desinstaladas se pueden volver a instalar desde la Microsoft Store con un solo clic." 
@@ -652,7 +703,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Background="#2B2414" BorderBrush="#594419" BorderThickness="1" CornerRadius="6" Padding="12,6">
+                            <Border Background="#2B2414" BorderBrush="#594419" BorderThickness="1" CornerRadius="8" Padding="12,6">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚠️" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Nota: Desinstalar la app de Xbox puede afectar al inicio de sesión de Xbox Game Pass. Restáurala si es necesario." 
@@ -665,7 +716,7 @@
                             <ItemsControl x:Name="BloatwareItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                                        <Border Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,10">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -683,7 +734,7 @@
                                                     <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="#95959E" TextWrapping="Wrap"/>
                                                 </StackPanel>
 
-                                                <Border Grid.Column="2" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="14,0,0,0">
+                                                <Border Grid.Column="2" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="14,0,0,0">
                                                     <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="11" FontWeight="Bold"/>
                                                 </Border>
                                             </Grid>
@@ -693,7 +744,7 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <Border Grid.Row="2" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,12,0,0">
+                        <Border Grid.Row="2" Background="#161619" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,12,0,0">
                             <DockPanel>
                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                     <Button x:Name="BtnUninstallBloatware" 
@@ -724,9 +775,9 @@
                 </Border>
             </TabItem>
 
-            <!-- PESTAÑA 5: INICIO RÁPIDO (STARTUP MANAGER) -->
+            <!-- PESTAÑA 6: INICIO RÁPIDO (STARTUP MANAGER) -->
             <TabItem Header="⚡ Inicio Rápido">
-                <Border Background="#18181B" BorderBrush="#26262B" BorderThickness="1" CornerRadius="8" Padding="16">
+                <Border Background="#16171B" BorderBrush="#25262E" BorderThickness="1" CornerRadius="10" Padding="16">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/> <!-- Header & Refresh -->
@@ -747,7 +798,7 @@
                                     Style="{StaticResource ActionButtonStyle}" 
                                     Background="#2B2B32" 
                                     DockPanel.Dock="Right" 
-                                    HorizontalAlignment="Right"
+                                    HorizontalAlignment="Right" 
                                     VerticalAlignment="Center"
                                     Click="BtnRefreshStartup_Click"/>
                         </DockPanel>
@@ -757,7 +808,7 @@
                             <ItemsControl x:Name="StartupItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#1F1F24" BorderBrush="#2F2F37" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                                        <Border Background="#1C1D22" BorderBrush="#2A2A32" BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,0,10">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
@@ -779,12 +830,12 @@
                                                         <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="Bold" Foreground="#F0F0F0"/>
 
                                                         <!-- Badge de Ubicación -->
-                                                        <Border Background="{Binding LocationBackground}" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <Border Background="{Binding LocationBackground}" CornerRadius="6" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding LocationTypeText}" Foreground="{Binding LocationColor}" FontSize="10.5" FontWeight="SemiBold"/>
                                                         </Border>
 
-                                                        <!-- Salvaguarda 2: Advertencia de aplicación crítica -->
-                                                        <Border Background="#3D1814" BorderBrush="#6B2820" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                        <!-- Salvaguarda: Advertencia de aplicación crítica -->
+                                                        <Border Background="#3D1814" BorderBrush="#6B2820" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center"
                                                                 Visibility="{Binding IsCritical, Converter={StaticResource BoolToVisConverter}}">
                                                             <TextBlock Text="{Binding CriticalWarningText}" Foreground="#FF6B5E" FontSize="10.5" FontWeight="Bold"/>
                                                         </Border>
@@ -795,7 +846,7 @@
                                                 </StackPanel>
 
                                                 <!-- Badge de Estado -->
-                                                <Border Grid.Column="2" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="14,0,0,0">
+                                                <Border Grid.Column="2" Background="{Binding StatusBackground}" BorderBrush="{Binding StatusBorder}" BorderThickness="1" CornerRadius="6" Padding="10,4" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="14,0,0,0">
                                                     <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="11" FontWeight="Bold"/>
                                                 </Border>
                                             </Grid>
@@ -805,8 +856,8 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <!-- Salvaguarda 3: Aclaración en la Interfaz -->
-                        <Border Grid.Row="2" Background="#18181D" BorderBrush="#26262F" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
+                        <!-- Salvaguarda: Aclaración en la Interfaz -->
+                        <Border Grid.Row="2" Background="#18181D" BorderBrush="#26262F" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,12,0,0">
                             <TextBlock Text="Nota: Los cambios se aplicarán en el próximo reinicio del sistema. Si la aplicación ya está abierta, no se cerrará en este momento." 
                                        FontSize="11.5" Foreground="#A0A0AA" FontStyle="Italic"/>
                         </Border>
@@ -815,30 +866,99 @@
             </TabItem>
         </TabControl>
 
-        <!-- Console Activity Log -->
-        <Border Grid.Row="5" Background="#121214" BorderBrush="#242428" BorderThickness="1" CornerRadius="8" Padding="12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <!-- Consola de Actividad Colapsable (TAREA 4) -->
+        <Expander Grid.Row="5" 
+                  x:Name="ConsoleExpander"
+                  IsExpanded="False"
+                  Background="#15161A" 
+                  BorderBrush="#25262E" 
+                  BorderThickness="1" 
+                  Margin="0,6,0,0">
+            <Expander.Style>
+                <Style TargetType="Expander">
+                    <Setter Property="Foreground" Value="#8A8A96"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="11.5"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Expander">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0" Margin="0,0,0,6">
-                    <TextBlock Text="Consola de Registro de Actividad" FontWeight="SemiBold" FontSize="11" Foreground="#7A7A85" DockPanel.Dock="Left"/>
-                    <TextBlock x:Name="TxtStatus" Text="Listo" FontSize="11" Foreground="#60CDFF" HorizontalAlignment="Right" DockPanel.Dock="Right"/>
+                                        <!-- Header Row -->
+                                        <ToggleButton Grid.Row="0"
+                                                      IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      Cursor="Hand"
+                                                      Padding="14,8">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                                        <DockPanel LastChildFill="True">
+                                                            <TextBlock x:Name="Arrow" Text="▶" Foreground="#7A7A88" FontSize="10" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                                                        </DockPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter TargetName="Arrow" Property="Text" Value="▼"/>
+                                                            <Setter TargetName="Arrow" Property="Foreground" Value="#60CDFF"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                            <ContentPresenter ContentSource="Header"/>
+                                        </ToggleButton>
+
+                                        <!-- Expandable Content -->
+                                        <Border Grid.Row="1" x:Name="ExpandSite" 
+                                                Visibility="Collapsed" 
+                                                Background="#111215" 
+                                                BorderBrush="#1F2026" 
+                                                BorderThickness="0,1,0,0" 
+                                                CornerRadius="0,0,8,8"
+                                                Padding="12,10">
+                                            <ContentPresenter/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsExpanded" Value="True">
+                                        <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Expander.Style>
+
+            <Expander.Header>
+                <DockPanel HorizontalAlignment="Stretch">
+                    <TextBlock Text="📟 Registro de Actividad y Consola" FontSize="11.5" FontWeight="SemiBold" Foreground="#8A8A96" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="20,0,0,0">
+                        <TextBlock Text="Estado:" FontSize="11" Foreground="#656570" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtStatus" Text="Listo" FontSize="11.5" Foreground="#60CDFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </DockPanel>
+            </Expander.Header>
 
-                <ScrollViewer Grid.Row="1" x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto">
-                    <TextBox x:Name="TxtLog" 
-                             Background="Transparent" 
-                             Foreground="#C8C8D0" 
-                             BorderThickness="0" 
-                             IsReadOnly="True" 
-                             FontFamily="Consolas, Cascadia Code, monospace" 
-                             FontSize="11.5" 
-                             TextWrapping="Wrap"/>
-                </ScrollViewer>
-            </Grid>
-        </Border>
+            <ScrollViewer x:Name="LogScrollViewer" Height="110" VerticalScrollBarVisibility="Auto">
+                <TextBox x:Name="TxtLog" 
+                         Background="Transparent" 
+                         Foreground="#C8C8D0" 
+                         BorderThickness="0" 
+                         IsReadOnly="True" 
+                         FontFamily="Consolas, Cascadia Code, monospace" 
+                         FontSize="11.5" 
+                         TextWrapping="Wrap"/>
+            </ScrollViewer>
+        </Expander>
     </Grid>
 </Window>

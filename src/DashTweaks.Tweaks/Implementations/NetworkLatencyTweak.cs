@@ -17,7 +17,7 @@ public class NetworkLatencyTweak : ITweak
 
     public string Id => "network-adapter-latency-tuning";
     public string Name => "Optimizador de Latencia de Red (NIC / DPC Tuning)";
-    public string Description => "Desactiva Interrupt Moderation y modos de ahorro de energía (EEE, Green Ethernet) y aumenta búferes de recepción en el adaptador Ethernet activo para eliminar picos de latencia DPC y stutter.";
+    public string Description => "Convierte tu tarjeta Ethernet en modo competitivo: procesa los paquetes sin esperas ni ahorros de energía para anular picos de lag.";
     public string Category => "Network";
     public RiskLevel Risk => RiskLevel.Aggressive;
     public bool RequiresRestart => true;

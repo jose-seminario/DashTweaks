@@ -8,7 +8,7 @@ public class NagleTweak : ITweak
 
     public string Id => "network-disable-nagle";
     public string Name => "Desactivar Algoritmo de Nagle (Reducción de Latencia)";
-    public string Description => "Desactiva la acumulación de paquetes pequeños TCP (TcpAckFrequency=1 y TCPNoDelay=1) para minimizar el ping en multijugador.";
+    public string Description => "Reduce el ping en juegos online evitando que Windows retenga paquetes de datos antes de enviarlos. (Ideal para conexiones por cable).";
     public string Category => "Network";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => true;
@@ -70,6 +70,49 @@ public class NagleTweak : ITweak
         {
             return false;
         }
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var interfacesKey = Registry.LocalMachine.OpenSubKey(InterfacesPath, false);
+            if (interfacesKey == null) return false;
+
+            bool foundActiveApplied = false;
+            bool foundAnyApplied = false;
+
+            foreach (var subKeyName in interfacesKey.GetSubKeyNames())
+            {
+                using var ifaceKey = interfacesKey.OpenSubKey(subKeyName, false);
+                if (ifaceKey == null) continue;
+
+                bool isAckOne = IsValueOne(ifaceKey.GetValue("TcpAckFrequency"));
+                bool isDelayOne = IsValueOne(ifaceKey.GetValue("TCPNoDelay"));
+
+                if (isAckOne && isDelayOne)
+                {
+                    foundAnyApplied = true;
+                    if (IsActiveInterface(ifaceKey))
+                    {
+                        foundActiveApplied = true;
+                    }
+                }
+            }
+
+            return foundActiveApplied || foundAnyApplied;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsValueOne(object? val)
+    {
+        if (val is int intVal) return intVal == 1;
+        if (val != null && int.TryParse(val.ToString(), out int parsed)) return parsed == 1;
+        return false;
     }
 
     private static bool IsActiveInterface(RegistryKey ifaceKey)

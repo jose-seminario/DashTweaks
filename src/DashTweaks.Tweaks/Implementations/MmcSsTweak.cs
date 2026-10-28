@@ -22,7 +22,7 @@ public class MmcSsTweak : ITweak
 
     public string Id => "system-mmcss-gaming-priority";
     public string Name => "Prioridad Multimedia (MMCSS) para Juegos";
-    public string Description => "Ajusta la programación de tareas multimedia para asignar máxima prioridad de GPU y CPU a videojuegos frente a servicios secundarios.";
+    public string Description => "Prioriza tu juego por encima de todo. Evita que apps secundarias o servicios del sistema te quiten rendimiento.";
     public string Category => "GPU / Memory";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => false;
@@ -104,6 +104,24 @@ public class MmcSsTweak : ITweak
 
             _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(SubKeyPath, false);
+            if (key == null) return false;
+
+            bool gpuOk = key.GetValue("GPU Priority") is int g && g == 8;
+            bool prioOk = key.GetValue("Priority") is int p && p == 6;
+            bool schedOk = string.Equals(key.GetValue("Scheduling Category")?.ToString(), "High", StringComparison.OrdinalIgnoreCase);
+
+            return gpuOk && prioOk && schedOk;
         }
         catch
         {

@@ -774,6 +774,37 @@ public partial class MainWindow : Window
 
     #endregion
 
+    private void TxtSearchTweaks_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (TxtSearchPlaceholder != null)
+        {
+            TxtSearchPlaceholder.Visibility = string.IsNullOrWhiteSpace(TxtSearchTweaks.Text) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        string query = TxtSearchTweaks.Text?.Trim() ?? "";
+        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(Tweaks);
+        if (view != null)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                view.Filter = null;
+            }
+            else
+            {
+                view.Filter = obj =>
+                {
+                    if (obj is TweakItemViewModel item)
+                    {
+                        return item.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                               item.Description.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                               item.Category.Contains(query, StringComparison.OrdinalIgnoreCase);
+                    }
+                    return false;
+                };
+            }
+        }
+    }
+
     #region Manejo de Tweaks Individuales
 
     private async void TweakActionButton_Click(object sender, RoutedEventArgs e)

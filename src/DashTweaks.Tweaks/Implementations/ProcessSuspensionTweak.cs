@@ -37,12 +37,14 @@ public class ProcessSuspensionTweak : ITweak
 
     public string Id => "system-suspend-background-processes";
     public string Name => "Suspensión de Procesos Secundarios";
-    public string Description => "Suspende temporalmente explorer.exe y aplicaciones no esenciales para liberar hilos de CPU sin cerrarlas. Respeta la Lista Blanca de exclusiones.";
+    public string Description => "Pone en pausa temporal aplicaciones que no estás usando mientras juegas (sin cerrarlas ni perder nada) para que la CPU rinda al 100%.";
     public string Category => "Processes";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => false;
 
     public int SuspendedCount => _suspendedProcessIds.Count;
+
+    public bool CheckIsApplied() => _suspendedProcessIds.Count > 0;
 
     public bool Apply()
     {

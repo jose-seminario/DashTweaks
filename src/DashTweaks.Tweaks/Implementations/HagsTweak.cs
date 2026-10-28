@@ -16,7 +16,7 @@ public class HagsTweak : ITweak
 
     public string Id => "gpu-hardware-accelerated-scheduling";
     public string Name => "Programación de GPU Acelerada por Hardware (HAGS)";
-    public string Description => "Permite a la GPU gestionar directamente su VRAM (HwSchMode=2) para reducir latencia y mejorar frametimes. (Aviso: Requiere reiniciar).";
+    public string Description => "Permite que la tarjeta gráfica administre su memoria de video directamente, logrando mayor fluidez y tiempos de cuadro más estables.";
     public string Category => "GPU";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;

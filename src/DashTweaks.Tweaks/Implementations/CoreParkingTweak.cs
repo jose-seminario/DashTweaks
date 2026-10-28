@@ -10,7 +10,7 @@ public class CoreParkingTweak : ITweak
 
     public string Id => "cpu-core-parking-disable";
     public string Name => "Desactivación de Core Parking (100% Núcleos Activos)";
-    public string Description => "Mantiene todos los núcleos físicos y lógicos de la CPU al 100% activos sin estacionarse (CPMINCORES = 100), eliminando micro-tirones por reactivación de núcleos.";
+    public string Description => "Mantiene todos los núcleos del procesador despiertos y listos para jugar. Elimina los tirones causados cuando la CPU 'duerme' núcleos para ahorrar energía.";
     public string Category => "CPU / Power";
     public RiskLevel Risk => RiskLevel.Aggressive;
     public bool RequiresRestart => false;

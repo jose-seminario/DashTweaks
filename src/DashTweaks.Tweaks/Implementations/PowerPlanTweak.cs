@@ -10,7 +10,7 @@ public class PowerPlanTweak : ITweak
 
     public string Id => "power-plan-high-performance";
     public string Name => "Plan de Energía: Alto Rendimiento";
-    public string Description => "Activa el esquema de Alto Rendimiento para evitar caídas de frecuencia de CPU durante sesiones gaming.";
+    public string Description => "Mantiene tu procesador a máxima potencia en todo momento. Evita caídas repentinas de FPS cuando el juego exige más rendimiento.";
     public string Category => "Power";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => false;
@@ -23,6 +23,34 @@ public class PowerPlanTweak : ITweak
     public bool Revert()
     {
         return SetPowerPlan(BalancedGuid);
+    }
+
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powercfg.exe",
+                Arguments = "/getactivescheme",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            var run = ProcessRunner.Run(psi, 5000);
+            if (run.ExitCode == 0 && !string.IsNullOrWhiteSpace(run.StdOut))
+            {
+                return run.StdOut.Contains(HighPerformanceGuid, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool SetPowerPlan(string planGuid)

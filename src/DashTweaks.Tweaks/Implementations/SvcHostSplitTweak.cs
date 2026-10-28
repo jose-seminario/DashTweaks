@@ -14,7 +14,7 @@ public class SvcHostSplitTweak : ITweak
 
     public string Id => "system-svchost-split-threshold";
     public string Name => "Separación de Procesos SvcHost (Memoria)";
-    public string Description => "Ajusta el umbral de SvcHost a 64 MB (0x04000000) para aislar servicios en procesos independientes, mejorando estabilidad y reduciendo contención de hilos en PCs modernos con 8GB+ RAM.";
+    public string Description => "Organiza los servicios internos de Windows en procesos separados para evitar atascos y caídas de rendimiento en equipos con 8 GB o más de RAM.";
     public string Category => "Memory";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;
@@ -63,6 +63,18 @@ public class SvcHostSplitTweak : ITweak
 
             _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(ControlPath, false);
+            return key?.GetValue(ValueName) is int val && val == 0x04000000;
         }
         catch
         {

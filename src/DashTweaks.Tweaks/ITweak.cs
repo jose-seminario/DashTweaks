@@ -18,4 +18,5 @@ public interface ITweak
     
     bool Apply();
     bool Revert();
+    bool CheckIsApplied();
 }

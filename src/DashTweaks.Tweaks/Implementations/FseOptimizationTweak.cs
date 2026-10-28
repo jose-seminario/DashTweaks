@@ -21,7 +21,7 @@ public class FseOptimizationTweak : ITweak
 
     public string Id => "gpu-fullscreen-exclusive-sfio";
     public string Name => "Optimizaciones de Pantalla Completa y SFIO";
-    public string Description => "Fuerza el comportamiento de pantalla completa exclusiva real (FSE Behavior=2) y asigna prioridad Alta a operaciones I/O de juegos (SFIO Priority='High').";
+    public string Description => "Elimina el retraso visual de la pantalla completa y acelera la carga de texturas dándole prioridad máxima a los archivos del juego en tu disco.";
     public string Category => "GPU";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;

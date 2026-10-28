@@ -21,11 +21,11 @@ public class NetworkAdvancedTweak : ITweak
     private bool _hadEnableMulticast;
 
     private bool _applied;
-    public bool IsApplied => _applied;
+    public bool IsApplied => CheckIsApplied();
 
     public string Id => "network-advanced-throttling";
     public string Name => "Optimización de Red y Responsividad (Desactivar Throttling)";
-    public string Description => "Elimina la limitación de red de Windows (NetworkThrottlingIndex=0xFFFFFFFF), prioriza la interfaz (SystemResponsiveness=0) y deshabilita LLMNR para menor ping.";
+    public string Description => "Elimina los límites de velocidad de red que Windows impone en segundo plano. Notarás partidas online más fluidas y estables.";
     public string Category => "Network";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => true;
@@ -145,10 +145,21 @@ public class NetworkAdvancedTweak : ITweak
         try
         {
             using var sysKey = Registry.LocalMachine.OpenSubKey(SystemProfilePath, false);
-            bool netOk = sysKey?.GetValue("NetworkThrottlingIndex") is int net && net == unchecked((int)0xFFFFFFFF);
-            bool respOk = sysKey?.GetValue("SystemResponsiveness") is int resp && resp == 0;
+            if (sysKey == null) return false;
 
-            return netOk && respOk;
+            var val = sysKey.GetValue("NetworkThrottlingIndex");
+            if (val is int net)
+            {
+                return unchecked((uint)net) == 0xFFFFFFFF;
+            }
+
+            if (val != null)
+            {
+                long num = Convert.ToInt64(val);
+                return num == -1 || num == 0xFFFFFFFFL || unchecked((uint)num) == 0xFFFFFFFF;
+            }
+
+            return false;
         }
         catch
         {

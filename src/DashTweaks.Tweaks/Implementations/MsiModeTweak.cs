@@ -27,7 +27,7 @@ public class MsiModeTweak : ITweak
 
     public string Id => "system-msi-mode-gpu-network";
     public string Name => "Modo MSI en GPU y Red (Message Signaled Interrupts)";
-    public string Description => "Configura interrupciones basadas en mensajes (MSI) en lugar de líneas IRQ tradicionales en tu tarjeta gráfica y adaptador de red, reduciendo la latencia DPC y los micro-tirones.";
+    public string Description => "Acelera la comunicación entre tu tarjeta gráfica, tarjeta de red y procesador. Suaviza la tasa de cuadros y reduce la latencia de entrada.";
     public string Category => "GPU / Network";
     public RiskLevel Risk => RiskLevel.Aggressive;
     public bool RequiresRestart => true;
@@ -178,13 +178,17 @@ public class MsiModeTweak : ITweak
                 using var msiKey = devKey?.OpenSubKey(MsiSubKeyRelative, false);
                 object? val = msiKey?.GetValue("MSISupported");
 
-                if (val is not int intVal || intVal != 1)
+                if (val is int intVal && intVal == 1)
                 {
-                    return false;
+                    return true;
+                }
+                if (val != null && int.TryParse(val.ToString(), out int parsed) && parsed == 1)
+                {
+                    return true;
                 }
             }
 
-            return true;
+            return false;
         }
         catch
         {

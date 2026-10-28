@@ -21,7 +21,7 @@ public class HidTweak : ITweak
 
     public string Id => "peripherals-hid-queue-size";
     public string Name => "Latencia de Entrada HID (Buffer Ratón y Teclado)";
-    public string Description => "Reduce el tamaño de la cola de eventos a 50 paquetes para disminuir input lag. (Aviso: No recomendado para ratones con tasa de sondeo mayor a 4000Hz).";
+    public string Description => "Reduce el tiempo de espera de tus movimientos de ratón y teclado para que cada giro y disparo se sienta pegado a tu mano.";
     public string Category => "Peripherals";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => true;

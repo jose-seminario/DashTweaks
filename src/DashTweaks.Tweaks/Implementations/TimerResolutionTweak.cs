@@ -15,12 +15,14 @@ public class TimerResolutionTweak : ITweak
 
     public string Id => "system-timer-resolution-05ms";
     public string Name => "Resolución del Temporizador a 0.5ms (Input Lag Mínimo)";
-    public string Description => "Fuerza el timer del kernel a 0.5ms mediante NtSetTimerResolution para máxima fluidez y menor retardo de fotogramas. (Advertencia: Aumenta el consumo de energía y batería).";
+    public string Description => "Acelera el reloj interno del sistema a 0.5 ms para que los fotogramas del juego y tus comandos se sincronicen con la máxima velocidad posible.";
     public string Category => "Power";
     public RiskLevel Risk => RiskLevel.Aggressive;
     public bool RequiresRestart => false;
 
     public bool IsActive { get; private set; }
+
+    public bool CheckIsApplied() => IsActive;
 
     public bool Apply()
     {

@@ -19,7 +19,7 @@ public class GameDvrTweak : ITweak
 
     public string Id => "gaming-disable-gamedvr";
     public string Name => "Desactivar GameDVR y Captura en Segundo Plano";
-    public string Description => "Desactiva la grabación en segundo plano de GameDVR para liberar memoria, GPU y reducir latencia de entrada.";
+    public string Description => "Apaga la grabadora de fondo de Windows. Libera memoria, GPU y hace que el ratón responda más rápido.";
     public string Category => "Services";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => false;
@@ -113,5 +113,22 @@ public class GameDvrTweak : ITweak
 
         if (ok) _applied = false;
         return ok;
+    }
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var hkcu = Registry.CurrentUser.OpenSubKey(HkcuPath, false);
+            if (hkcu?.GetValue(HkcuValue) is int hkcuVal && hkcuVal == 0) return true;
+
+            using var policy = Registry.LocalMachine.OpenSubKey(PolicyPath, false);
+            if (policy?.GetValue(PolicyValue) is int policyVal && policyVal == 0) return true;
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

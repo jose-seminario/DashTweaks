@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using DashTweaks.Tweaks;
-using DashTweaks.Tweaks.Implementations;
 
 namespace DashTweaks.UI.ViewModels;
 
@@ -68,19 +67,7 @@ public class TweakItemViewModel : INotifyPropertyChanged
     public TweakItemViewModel(ITweak tweak)
     {
         Tweak = tweak;
-        _isApplied = tweak switch
-        {
-            CoreParkingTweak t => t.IsApplied,
-            PrioritySeparationTweak t => t.IsApplied,
-            MsiModeTweak t => t.IsApplied,
-            NetworkLatencyTweak t => t.IsApplied,
-            HidPriorityTweak t => t.IsApplied,
-            FseOptimizationTweak t => t.IsApplied,
-            HagsTweak t => t.IsApplied,
-            HidTweak t => t.IsApplied,
-            NetworkAdvancedTweak t => t.IsApplied,
-            _ => false
-        };
+        _isApplied = tweak.CheckIsApplied();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

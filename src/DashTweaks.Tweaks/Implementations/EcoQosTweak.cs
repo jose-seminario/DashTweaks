@@ -45,12 +45,14 @@ public class EcoQosTweak : ITweak
 
     public string Id => "processes-ecoqos-background-throttling";
     public string Name => "EcoQoS en Procesos de Fondo (Prioridad de CPU para Juegos)";
-    public string Description => "Aplica estrangulamiento de eficiencia energética (EcoQoS) a aplicaciones secundarias sin ventana activa, liberando núcleos de alto rendimiento de la CPU para el juego.";
+    public string Description => "Obliga a las aplicaciones que tienes abiertas de fondo a consumir menos CPU y energía, reservando toda la potencia para tu partida.";
     public string Category => "Processes";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => false;
 
     public int ThrottledCount => _throttledPids.Count;
+
+    public bool CheckIsApplied() => _throttledPids.Count > 0;
 
     public bool Apply()
     {

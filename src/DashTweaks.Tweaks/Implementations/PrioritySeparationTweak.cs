@@ -10,7 +10,7 @@ public class PrioritySeparationTweak : ITweak
 
     public string Id => "system-win32-priority-separation-26";
     public string Name => "Prioridad Cuántica de Procesos (Win32PrioritySeparation 26)";
-    public string Description => "Configura Win32PrioritySeparation en 26 (0x1A) para otorgar intervalos cortos y prioridad máxima al juego en primer plano, evitando tirones por procesos secundarios.";
+    public string Description => "Concentra la atención del procesador en el juego que estás jugando, evitando que tareas de fondo causen bajones de fotogramas.";
     public string Category => "CPU / System";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => false;

@@ -14,7 +14,7 @@ public class MouseAccelerationTweak : ITweak
 
     public string Id => "peripherals-disable-mouse-acceleration";
     public string Name => "Desactivar Aceleración del Ratón (Precisión 1:1)";
-    public string Description => "Desactiva la curva de aceleración angular de Windows (MouseSpeed=0, Thresholds=0) para asegurar puntería consistente 1:1. (Aviso: Requiere cerrar sesión o reiniciar para aplicarse en la mayoría de juegos).";
+    public string Description => "Desactiva la aceleración artificial de Windows. Tu puntería será 100% predecible: la misma distancia en tu mano siempre moverá la misma distancia en pantalla.";
     public string Category => "Peripherals";
     public RiskLevel Risk => RiskLevel.Safe;
     public bool RequiresRestart => false;
@@ -72,6 +72,24 @@ public class MouseAccelerationTweak : ITweak
 
             _applied = false;
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    public bool CheckIsApplied()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(MousePath, false);
+            if (key == null) return false;
+
+            string? speed = key.GetValue("MouseSpeed")?.ToString();
+            string? t1 = key.GetValue("MouseThreshold1")?.ToString();
+            string? t2 = key.GetValue("MouseThreshold2")?.ToString();
+
+            return speed == "0" && t1 == "0" && t2 == "0";
         }
         catch
         {

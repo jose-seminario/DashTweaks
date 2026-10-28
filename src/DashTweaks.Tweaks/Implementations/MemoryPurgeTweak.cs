@@ -91,7 +91,7 @@ public class MemoryPurgeTweak : ITweak
 
     public string Id => "memory-purge-standbylist";
     public string Name => "Purga de Memoria Standby (Solo Bajo Presión)";
-    public string Description => "Vacia la lista de memoria en espera (Standby Cache) únicamente si el uso de RAM supera el 80%, evitando micro-tirones innecesarios.";
+    public string Description => "Libera memoria RAM acumulada en segundo plano solo si tu equipo está al límite (80%+), previniendo congelamientos por falta de memoria.";
     public string Category => "Memory";
     public RiskLevel Risk => RiskLevel.Moderate;
     public bool RequiresRestart => false;
@@ -159,6 +159,8 @@ public class MemoryPurgeTweak : ITweak
             return false;
         }
     }
+
+    public bool CheckIsApplied() => false;
 
     public bool Revert()
     {

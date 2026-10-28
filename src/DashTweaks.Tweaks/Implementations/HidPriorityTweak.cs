@@ -25,7 +25,7 @@ public class HidPriorityTweak : ITweak
 
     public string Id => "input-hid-mouse-keyboard-priority";
     public string Name => "Prioridad IRQ para Ratón y Teclado (Affinity Policy High)";
-    public string Description => "Configura la prioridad de interrupción en 'Alta' (DevicePriority = 3) y política segura (DevicePolicy = 0) para tus periféricos HID, garantizando que el hardware procese movimientos y clics con mínima latencia.";
+    public string Description => "Hace que Windows escuche tus clics y teclas al instante sin ponerlos en cola, dando una respuesta inmediata en shooters y competitivos.";
     public string Category => "Input / Latency";
     public RiskLevel Risk => RiskLevel.Aggressive;
     public bool RequiresRestart => true;
@@ -190,13 +190,17 @@ public class HidPriorityTweak : ITweak
                 using var affinityKey = devKey?.OpenSubKey(AffinityPolicySubKey, false);
                 object? prio = affinityKey?.GetValue("DevicePriority");
 
-                if (prio is not int intPrio || intPrio != 3)
+                if (prio is int intPrio && intPrio == 3)
                 {
-                    return false;
+                    return true;
+                }
+                if (prio != null && int.TryParse(prio.ToString(), out int parsed) && parsed == 3)
+                {
+                    return true;
                 }
             }
 
-            return true;
+            return false;
         }
         catch
         {
